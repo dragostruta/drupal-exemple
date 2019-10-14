@@ -12,8 +12,7 @@ use Drupal\Core\Field\FieldItemBase;
  *   id = "map",
  *   label = @Translation("Map"),
  *   description = @Translation("An entity field for storing a serialized array of values."),
- *   no_ui = TRUE,
- *   list_class = "\Drupal\Core\Field\MapFieldItemList",
+ *   no_ui = TRUE
  * )
  */
 class MapItem extends FieldItemBase {
@@ -64,12 +63,7 @@ class MapItem extends FieldItemBase {
         $values = $values->getValue();
       }
       else {
-        if (version_compare(PHP_VERSION, '7.0.0', '>=')) {
-          $values = unserialize($values, ['allowed_classes' => FALSE]);
-        }
-        else {
-          $values = unserialize($values);
-        }
+        $values = unserialize($values);
       }
     }
 

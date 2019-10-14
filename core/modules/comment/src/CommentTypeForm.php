@@ -2,9 +2,8 @@
 
 namespace Drupal\comment;
 
-use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\language\Entity\ContentLanguageSettings;
@@ -13,25 +12,15 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Base form handler for comment type edit forms.
- *
- * @internal
  */
 class CommentTypeForm extends EntityForm {
-  use DeprecatedServicePropertyTrait;
 
   /**
-   * {@inheritdoc}
-   */
-  protected $deprecatedProperties = [
-    'entityManager' => 'entity.manager',
-  ];
-
-  /**
-   * Entity type manager service.
+   * Entity manager service.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityTypeManager;
+  protected $entityManager;
 
   /**
    * A logger instance.
@@ -52,7 +41,7 @@ class CommentTypeForm extends EntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_type.manager'),
+      $container->get('entity.manager'),
       $container->get('logger.factory')->get('comment'),
       $container->get('comment.manager')
     );
@@ -61,15 +50,15 @@ class CommentTypeForm extends EntityForm {
   /**
    * Constructs a CommentTypeFormController
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_manager
-   *   The entity type manager service.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager service.
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
    * @param \Drupal\comment\CommentManagerInterface $comment_manager
    *   The comment manager.
    */
-  public function __construct(EntityTypeManagerInterface $entity_manager, LoggerInterface $logger, CommentManagerInterface $comment_manager) {
-    $this->entityTypeManager = $entity_manager;
+  public function __construct(EntityManagerInterface $entity_manager, LoggerInterface $logger, CommentManagerInterface $comment_manager) {
+    $this->entityManager = $entity_manager;
     $this->logger = $logger;
     $this->commentManager = $comment_manager;
   }
@@ -108,7 +97,7 @@ class CommentTypeForm extends EntityForm {
 
     if ($comment_type->isNew()) {
       $options = [];
-      foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
+      foreach ($this->entityManager->getDefinitions() as $entity_type) {
         // Only expose entities that have field UI enabled, only those can
         // get comment fields added in the UI.
         if ($entity_type->get('field_ui_base_route')) {
@@ -120,13 +109,13 @@ class CommentTypeForm extends EntityForm {
         '#default_value' => $comment_type->getTargetEntityTypeId(),
         '#title' => t('Target entity type'),
         '#options' => $options,
-        '#description' => t('The target entity type can not be changed after the comment type has been created.'),
+        '#description' => t('The target entity type can not be changed after the comment type has been created.')
       ];
     }
     else {
       $form['target_entity_type_id_display'] = [
         '#type' => 'item',
-        '#markup' => $this->entityTypeManager->getDefinition($comment_type->getTargetEntityTypeId())->getLabel(),
+        '#markup' => $this->entityManager->getDefinition($comment_type->getTargetEntityTypeId())->getLabel(),
         '#title' => t('Target entity type'),
       ];
     }
@@ -167,18 +156,18 @@ class CommentTypeForm extends EntityForm {
     $comment_type = $this->entity;
     $status = $comment_type->save();
 
-    $edit_link = $this->entity->toLink($this->t('Edit'), 'edit-form')->toString();
+    $edit_link = $this->entity->link($this->t('Edit'));
     if ($status == SAVED_UPDATED) {
-      $this->messenger()->addStatus(t('Comment type %label has been updated.', ['%label' => $comment_type->label()]));
+      drupal_set_message(t('Comment type %label has been updated.', ['%label' => $comment_type->label()]));
       $this->logger->notice('Comment type %label has been updated.', ['%label' => $comment_type->label(), 'link' => $edit_link]);
     }
     else {
       $this->commentManager->addBodyField($comment_type->id());
-      $this->messenger()->addStatus(t('Comment type %label has been added.', ['%label' => $comment_type->label()]));
+      drupal_set_message(t('Comment type %label has been added.', ['%label' => $comment_type->label()]));
       $this->logger->notice('Comment type %label has been added.', ['%label' => $comment_type->label(), 'link' => $edit_link]);
     }
 
-    $form_state->setRedirectUrl($comment_type->toUrl('collection'));
+    $form_state->setRedirectUrl($comment_type->urlInfo('collection'));
   }
 
 }

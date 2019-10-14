@@ -37,7 +37,7 @@ class SqlEntityLoadingTest extends ViewsKernelTestBase {
     $this->installSchema('node', 'node_access');
   }
 
-  public function testViewWithNonDefaultPendingRevision() {
+  public function testViewWithNonDefaultForwardRevision() {
     $node_type = NodeType::create([
       'type' => 'page',
     ]);
@@ -69,7 +69,7 @@ class SqlEntityLoadingTest extends ViewsKernelTestBase {
         'nid' => $node->id(),
         // The default revision ID.
         'vid_1' => $revision->getRevisionId(),
-        // The latest revision ID.
+        // THe latest revision ID.
         'vid' => $revision2->getRevisionId(),
       ],
     ];

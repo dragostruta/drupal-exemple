@@ -6,6 +6,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\migrate\Plugin\migrate\process\MakeUniqueEntityField;
+use Drupal\Component\Utility\Unicode;
 
 /**
  * @coversDefaultClass \Drupal\migrate\Plugin\migrate\process\MakeUniqueEntityField
@@ -17,6 +18,7 @@ class MakeUniqueEntityFieldTest extends MigrateProcessTestCase {
    * The mock entity query.
    *
    * @var \Drupal\Core\Entity\Query\QueryInterface
+   * @var \Drupal\Core\Entity\Query\QueryFactory
    */
   protected $entityQuery;
 
@@ -75,7 +77,7 @@ class MakeUniqueEntityFieldTest extends MigrateProcessTestCase {
     $this->entityQueryExpects($count);
     $value = $this->randomMachineName(32);
     $actual = $plugin->transform($value, $this->migrateExecutable, $this->row, 'testproperty');
-    $expected = mb_substr($value, $start, $length);
+    $expected = Unicode::substr($value, $start, $length);
     $expected .= $count ? $postfix . $count : '';
     $this->assertSame($expected, $actual);
   }
@@ -163,9 +165,7 @@ class MakeUniqueEntityFieldTest extends MigrateProcessTestCase {
       ->will($this->returnValue($this->entityQuery));
     $this->entityQuery->expects($this->exactly($count + 1))
       ->method('execute')
-      ->will($this->returnCallback(function () use (&$count) {
-        return $count--;
-      }));
+      ->will($this->returnCallback(function () use (&$count) { return $count--;}));
   }
 
   /**
@@ -196,7 +196,7 @@ class MakeUniqueEntityFieldTest extends MigrateProcessTestCase {
 
     // Entity 'forums' is pre-existing, entity 'test_vocab' was migrated.
     $this->idMap
-      ->method('lookupSourceId')
+      ->method('lookupSourceID')
       ->will($this->returnValueMap([
         [['test_field' => 'forums'], FALSE],
         [['test_field' => 'test_vocab'], ['source_id' => 42]],

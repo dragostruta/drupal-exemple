@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\taxonomy\Functional;
 
-use Drupal\Core\Database\Database;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -51,16 +50,15 @@ class TaxonomyQueryAlterTest extends BrowserTestBase {
     $this->setupQueryTagTestHooks();
     $loaded_terms = $term_storage->loadParents($terms[2]->id());
     $this->assertEqual(count($loaded_terms), 1, 'All parent terms were loaded');
-    $this->assertQueryTagTestResult(3, 1, 'TermStorage::loadParents()');
+    $this->assertQueryTagTestResult(2, 1, 'TermStorage::loadParents()');
 
     $this->setupQueryTagTestHooks();
     $loaded_terms = $term_storage->loadChildren($terms[1]->id());
     $this->assertEqual(count($loaded_terms), 1, 'All child terms were loaded');
-    $this->assertQueryTagTestResult(3, 1, 'TermStorage::loadChildren()');
+    $this->assertQueryTagTestResult(2, 1, 'TermStorage::loadChildren()');
 
     $this->setupQueryTagTestHooks();
-    $connection = Database::getConnection();
-    $query = $connection->select('taxonomy_term_data', 't');
+    $query = db_select('taxonomy_term_data', 't');
     $query->addField('t', 'tid');
     $query->addTag('taxonomy_term_access');
     $tids = $query->execute()->fetchCol();
@@ -68,7 +66,7 @@ class TaxonomyQueryAlterTest extends BrowserTestBase {
     $this->assertQueryTagTestResult(1, 1, 'custom db_select() with taxonomy_term_access tag (preferred)');
 
     $this->setupQueryTagTestHooks();
-    $query = $connection->select('taxonomy_term_data', 't');
+    $query = db_select('taxonomy_term_data', 't');
     $query->addField('t', 'tid');
     $query->addTag('term_access');
     $tids = $query->execute()->fetchCol();

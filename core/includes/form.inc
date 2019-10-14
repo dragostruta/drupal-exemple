@@ -235,13 +235,13 @@ function template_preprocess_fieldset(&$variables) {
  * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #attributes, #children, #description, #required,
- *     #summary_attributes, #title, #value.
+ *     Properties used: #attributes, #children, #open,
+ *     #description, #id, #title, #value, #optional.
  */
 function template_preprocess_details(&$variables) {
   $element = $variables['element'];
   $variables['attributes'] = $element['#attributes'];
-  $variables['summary_attributes'] = new Attribute($element['#summary_attributes']);
+  $variables['summary_attributes'] = new Attribute();
   if (!empty($element['#title'])) {
     $variables['summary_attributes']['role'] = 'button';
     if (!empty($element['#attributes']['id'])) {
@@ -251,11 +251,6 @@ function template_preprocess_details(&$variables) {
     $variables['summary_attributes']['aria-pressed'] = $variables['summary_attributes']['aria-expanded'];
   }
   $variables['title'] = (!empty($element['#title'])) ? $element['#title'] : '';
-  // If the element title is a string, wrap it a render array so that markup
-  // will not be escaped (but XSS-filtered).
-  if (is_string($variables['title']) && $variables['title'] !== '') {
-    $variables['title'] = ['#markup' => $variables['title']];
-  }
   $variables['description'] = (!empty($element['#description'])) ? $element['#description'] : '';
   $variables['children'] = (isset($element['#children'])) ? $element['#children'] : '';
   $variables['value'] = (isset($element['#value'])) ? $element['#value'] : '';
@@ -375,13 +370,12 @@ function template_preprocess_form(&$variables) {
  * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #title, #value, #description, #rows, #cols, #maxlength,
- *     #placeholder, #required, #attributes, #resizable.
+ *     Properties used: #title, #value, #description, #rows, #cols,
+ *     #placeholder, #required, #attributes, #resizable
  */
 function template_preprocess_textarea(&$variables) {
   $element = $variables['element'];
-  $attributes = ['id', 'name', 'rows', 'cols', 'maxlength', 'placeholder'];
-  Element::setAttributes($element, $attributes);
+  Element::setAttributes($element, ['id', 'name', 'rows', 'cols', 'placeholder']);
   RenderElement::setAttributes($element, ['form-textarea']);
   $variables['wrapper_attributes'] = new Attribute();
   $variables['attributes'] = new Attribute($element['#attributes']);
@@ -423,14 +417,11 @@ function template_preprocess_textarea(&$variables) {
  * but the parent element should have neither. Use this carefully because a
  * field without an associated label can cause accessibility challenges.
  *
- * To associate the label with a different field, set the #label_for property
- * to the ID of the desired field.
- *
  * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
  *     Properties used: #title, #title_display, #description, #id, #required,
- *     #children, #type, #name, #label_for.
+ *     #children, #type, #name.
  */
 function template_preprocess_form_element(&$variables) {
   $element = &$variables['element'];
@@ -442,7 +433,6 @@ function template_preprocess_form_element(&$variables) {
     '#title_display' => 'before',
     '#wrapper_attributes' => [],
     '#label_attributes' => [],
-    '#label_for' => NULL,
   ];
   $variables['attributes'] = $element['#wrapper_attributes'];
 
@@ -491,12 +481,6 @@ function template_preprocess_form_element(&$variables) {
   $variables['label'] = ['#theme' => 'form_element_label'];
   $variables['label'] += array_intersect_key($element, array_flip(['#id', '#required', '#title', '#title_display']));
   $variables['label']['#attributes'] = $element['#label_attributes'];
-  if (!empty($element['#label_for'])) {
-    $variables['label']['#for'] = $element['#label_for'];
-    if (!empty($element['#id'])) {
-      $variables['label']['#id'] = $element['#id'] . '--label';
-    }
-  }
 
   $variables['children'] = $element['#children'];
 }
@@ -517,13 +501,10 @@ function template_preprocess_form_element(&$variables) {
  * required. That is especially important for screenreader users to know
  * which field is required.
  *
- * To associate the label with a different field, set the #for property to the
- * ID of the desired field.
- *
  * @param array $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #required, #title, #id, #value, #description, #for.
+ *     Properties used: #required, #title, #id, #value, #description.
  */
 function template_preprocess_form_element_label(&$variables) {
   $element = $variables['element'];
@@ -657,7 +638,7 @@ function template_preprocess_form_element_label(&$variables) {
  *   else {
  *     $message = t('Finished with an error.');
  *   }
- *   \Drupal::messenger()->addMessage($message);
+ *   drupal_set_message($message);
  *   // Providing data for the redirected page is done through $_SESSION.
  *   foreach ($results as $result) {
  *     $items[] = t('Loaded node %title.', array('%title' => $result));
@@ -792,21 +773,21 @@ function batch_set($batch_definition) {
  * Form API takes care of batches that were set during form submission.
  *
  * @param \Drupal\Core\Url|string $redirect
- *   (optional) Either a path or Url object to redirect to when the batch has
- *   finished processing. For example, to redirect users to the home page, use
- *   '<front>'. If you wish to allow standard form API batch handling to occur
- *   and force the user to be redirected to a custom location after the batch
- *   has finished processing, you do not need to use batch_process() and this
- *   parameter. Instead, make the batch 'finished' callback return an instance
- *   of \Symfony\Component\HttpFoundation\RedirectResponse, which will be used
+ *   (optional) Either path or Url object to redirect to when the batch has
+ *   finished processing. Note that to simply force a batch to (conditionally)
+ *   redirect to a custom location after it is finished processing but to
+ *   otherwise allow the standard form API batch handling to occur, it is not
+ *   necessary to call batch_process() and use this parameter. Instead, make
+ *   the batch 'finished' callback return an instance of
+ *   \Symfony\Component\HttpFoundation\RedirectResponse, which will be used
  *   automatically by the standard batch processing pipeline (and which takes
- *   precedence over this parameter). If this parameter is omitted and no
- *   redirect response was returned by the 'finished' callback, the user will
- *   be redirected to the page that started the batch. Any query arguments will
- *   be automatically persisted.
+ *   precedence over this parameter).
+ *   User will be redirected to the page that started the batch if this argument
+ *   is omitted and no redirect response was returned by the 'finished'
+ *   callback. Any query arguments will be automatically persisted.
  * @param \Drupal\Core\Url $url
- *   (optional) URL of the batch processing page. Should only be used for
- *   separate scripts like update.php.
+ *   (optional - should only be used for separate scripts like update.php)
+ *   URL of the batch processing page.
  * @param $redirect_callback
  *   (optional) Specify a function to be called to redirect to the progressive
  *   processing page.
@@ -837,7 +818,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
 
     // Assign an arbitrary id: don't rely on a serial column in the 'batch'
     // table, since non-progressive batches skip database storage completely.
-    $batch['id'] = \Drupal::database()->nextId();
+    $batch['id'] = db_next_id();
 
     // Move operations to a job queue. Non-progressive batches will use a
     // memory-based queue.

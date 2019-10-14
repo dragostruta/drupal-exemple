@@ -4,7 +4,7 @@ namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableDependencyInterface;
@@ -164,6 +164,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       }
     }
 
+
     $this->setOptionDefaults($this->options, $this->defineOptions());
     $this->display = &$display;
 
@@ -233,9 +234,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function isDefaultDisplay() {
-    return FALSE;
-  }
+  public function isDefaultDisplay() { return FALSE; }
 
   /**
    * {@inheritdoc}
@@ -395,7 +394,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function attachTo(ViewExecutable $view, $display_id, array &$build) {}
+  public function attachTo(ViewExecutable $view, $display_id, array &$build) { }
 
   /**
    * {@inheritdoc}
@@ -666,23 +665,17 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function hasPath() {
-    return FALSE;
-  }
+  public function hasPath() { return FALSE; }
 
   /**
    * {@inheritdoc}
    */
-  public function usesLinkDisplay() {
-    return !$this->hasPath();
-  }
+  public function usesLinkDisplay() { return !$this->hasPath(); }
 
   /**
    * {@inheritdoc}
    */
-  public function usesExposedFormInBlock() {
-    return $this->hasPath();
-  }
+  public function usesExposedFormInBlock() { return $this->hasPath(); }
 
   /**
    * {@inheritdoc}
@@ -779,7 +772,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       return $this->default_display->getOption($option);
     }
 
-    if (isset($this->options[$option]) || array_key_exists($option, $this->options)) {
+    if (array_key_exists($option, $this->options)) {
       return $this->options[$option];
     }
   }
@@ -962,6 +955,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     return $this->dependencies;
   }
 
+
   /**
    * {@inheritdoc}
    */
@@ -1021,7 +1015,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     }
 
     if (!empty($class)) {
-      $text = new FormattableMarkup('<span>@text</span>', ['@text' => $text]);
+      $text = SafeMarkup::format('<span>@text</span>', ['@text' => $text]);
     }
 
     if (empty($title)) {
@@ -1032,13 +1026,13 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         'js' => 'nojs',
         'view' => $this->view->storage->id(),
         'display_id' => $this->display['id'],
-        'type' => $section,
+        'type' => $section
       ], [
         'attributes' => [
           'class' => ['views-ajax-link', $class],
           'title' => $title,
-          'id' => Html::getUniqueId('views-' . $this->display['id'] . '-' . $section),
-        ],
+          'id' => Html::getUniqueId('views-' . $this->display['id'] . '-' . $section)
+        ]
     ]));
   }
 
@@ -1469,7 +1463,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
           '#title' => $this->t('Show contextual links'),
           '#default_value' => $this->getOption('show_admin_links'),
         ];
-        break;
+      break;
       case 'use_more':
         $form['#title'] .= $this->t('Add a more link to the bottom of the display.');
         $form['use_more'] = [
@@ -1864,7 +1858,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         if (preg_match('/[^a-zA-Z0-9-_ ]/', $css_class)) {
           $form_state->setError($form['css_class'], $this->t('CSS classes must be alphanumeric or dashes only.'));
         }
-        break;
+      break;
       case 'display_id':
         if ($form_state->getValue('display_id')) {
           if (preg_match('/[^a-z0-9_]/', $form_state->getValue('display_id'))) {
@@ -2057,7 +2051,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function renderFilters() {}
+  public function renderFilters() { }
 
   /**
    * {@inheritdoc}
@@ -2121,7 +2115,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       '#cache' => &$this->view->element['#cache'],
     ];
 
-    $this->applyDisplayCacheabilityMetadata($this->view->element);
+    $this->applyDisplayCachablityMetadata($this->view->element);
 
     return $element;
   }
@@ -2132,7 +2126,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
    * @param array $element
    *   The render array with updated cacheability metadata.
    */
-  protected function applyDisplayCacheabilityMetadata(array &$element) {
+  protected function applyDisplayCachablityMetadata(array &$element) {
     /** @var \Drupal\views\Plugin\views\cache\CachePluginBase $cache */
     $cache = $this->getPlugin('cache');
 
@@ -2142,22 +2136,6 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       ->setCacheMaxAge(Cache::mergeMaxAges($cache->getCacheMaxAge(), isset($this->display['cache_metadata']['max-age']) ? $this->display['cache_metadata']['max-age'] : Cache::PERMANENT))
       ->merge(CacheableMetadata::createFromRenderArray($element))
       ->applyTo($element);
-  }
-
-  /**
-   * Applies the cacheability of the current display to the given render array.
-   *
-   * @param array $element
-   *   The render array with updated cacheability metadata.
-   *
-   * @deprecated in Drupal 8.4.0, will be removed before Drupal 9.0. Use
-   *   DisplayPluginBase::applyDisplayCacheabilityMetadata instead.
-   *
-   * @see \Drupal\views\Plugin\views\display\DisplayPluginBase::applyDisplayCacheabilityMetadata()
-   */
-  protected function applyDisplayCachablityMetadata(array &$element) {
-    @trigger_error('The DisplayPluginBase::applyDisplayCachablityMetadata method is deprecated since version 8.4 and will be removed in 9.0. Use DisplayPluginBase::applyDisplayCacheabilityMetadata instead.', E_USER_DEPRECATED);
-    $this->applyDisplayCacheabilityMetadata($element);
   }
 
   /**
@@ -2331,7 +2309,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function execute() {}
+  public function execute() { }
 
   /**
    * {@inheritdoc}
@@ -2352,7 +2330,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     // of cacheability metadata (e.g.: cache contexts), so they can bubble up.
     // Thus, we add the cacheability metadata first, then modify / remove the
     // cache keys depending on the $cache argument.
-    $this->applyDisplayCacheabilityMetadata($this->view->element);
+    $this->applyDisplayCachablityMetadata($this->view->element);
     if ($cache) {
       $this->view->element['#cache'] += ['keys' => []];
       // Places like \Drupal\views\ViewExecutable::setCurrentPage() set up an
@@ -2479,14 +2457,6 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       }
     }
 
-    // Validate extenders.
-    foreach ($this->extenders as $extender) {
-      $result = $extender->validate();
-      if (!empty($result) && is_array($result)) {
-        $errors = array_merge($errors, $result);
-      }
-    }
-
     return $errors;
   }
 
@@ -2594,7 +2564,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   public function getPagerText() {
     return [
       'items per page title' => $this->t('Items to display'),
-      'items per page description' => $this->t('Enter 0 for no limit.'),
+      'items per page description' => $this->t('Enter 0 for no limit.')
     ];
   }
 

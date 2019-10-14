@@ -4,7 +4,6 @@ namespace Drupal\Tests\comment\Unit;
 
 use Drupal\comment\CommentLinkBuilder;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\Traits\Core\GeneratePermutationsTrait;
@@ -33,11 +32,11 @@ class CommentLinkBuilderTest extends UnitTestCase {
   protected $stringTranslation;
 
   /**
-   * The entity type manager.
+   * The entity manager service.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityTypeManager;
+  protected $entityManager;
 
   /**
    * Module handler mock.
@@ -61,7 +60,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
   protected $timestamp;
 
   /**
-   * @var \Drupal\comment\CommentLinkBuilderInterface
+   * @var \Drupal\comment\CommentLinkBuilderInterface;
    */
   protected $commentLinkBuilder;
 
@@ -71,10 +70,10 @@ class CommentLinkBuilderTest extends UnitTestCase {
   protected function setUp() {
     $this->commentManager = $this->getMock('\Drupal\comment\CommentManagerInterface');
     $this->stringTranslation = $this->getStringTranslationStub();
-    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $this->entityManager = $this->getMock('\Drupal\Core\Entity\EntityManagerInterface');
     $this->moduleHandler = $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface');
     $this->currentUser = $this->getMock('\Drupal\Core\Session\AccountProxyInterface');
-    $this->commentLinkBuilder = new CommentLinkBuilder($this->currentUser, $this->commentManager, $this->moduleHandler, $this->stringTranslation, $this->entityTypeManager);
+    $this->commentLinkBuilder = new CommentLinkBuilder($this->currentUser, $this->commentManager, $this->moduleHandler, $this->stringTranslation, $this->entityManager);
     $this->commentManager->expects($this->any())
       ->method('getFields')
       ->with('node')
@@ -270,7 +269,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
    */
   protected function getMockNode($has_field, $comment_status, $form_location, $comment_count) {
     $node = $this->getMock('\Drupal\node\NodeInterface');
-    $node->expects($this->any())
+    $node->expects($this->once())
       ->method('hasField')
       ->willReturn($has_field);
 
@@ -311,7 +310,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
 
     $url = Url::fromRoute('node.view');
     $node->expects($this->any())
-      ->method('toUrl')
+      ->method('urlInfo')
       ->willReturn($url);
     $node->expects($this->any())
       ->method('url')
@@ -325,9 +324,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
 namespace Drupal\comment;
 
 if (!function_exists('history_read')) {
-
   function history_read() {
     return 0;
   }
-
 }

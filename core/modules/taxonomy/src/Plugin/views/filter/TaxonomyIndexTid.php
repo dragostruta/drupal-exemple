@@ -82,9 +82,7 @@ class TaxonomyIndexTid extends ManyToOne {
     }
   }
 
-  public function hasExtraOptions() {
-    return TRUE;
-  }
+  public function hasExtraOptions() { return TRUE; }
 
   /**
    * {@inheritdoc}
@@ -182,7 +180,7 @@ class TaxonomyIndexTid extends ManyToOne {
         if ($tree) {
           foreach ($tree as $term) {
             $choice = new \stdClass();
-            $choice->option = [$term->id() => str_repeat('-', $term->depth) . \Drupal::service('entity.repository')->getTranslationFromContext($term)->label()];
+            $choice->option = [$term->id() => str_repeat('-', $term->depth) . \Drupal::entityManager()->getTranslationFromContext($term)->label()];
             $options[] = $choice;
           }
         }
@@ -200,7 +198,7 @@ class TaxonomyIndexTid extends ManyToOne {
         }
         $terms = Term::loadMultiple($query->execute());
         foreach ($terms as $term) {
-          $options[$term->id()] = \Drupal::service('entity.repository')->getTranslationFromContext($term)->label();
+          $options[$term->id()] = \Drupal::entityManager()->getTranslationFromContext($term)->label();
         }
       }
 
@@ -365,7 +363,7 @@ class TaxonomyIndexTid extends ManyToOne {
       $this->value = array_filter($this->value);
       $terms = Term::loadMultiple($this->value);
       foreach ($terms as $term) {
-        $this->valueOptions[$term->id()] = \Drupal::service('entity.repository')->getTranslationFromContext($term)->label();
+        $this->valueOptions[$term->id()] = \Drupal::entityManager()->getTranslationFromContext($term)->label();
       }
     }
     return parent::adminSummary();

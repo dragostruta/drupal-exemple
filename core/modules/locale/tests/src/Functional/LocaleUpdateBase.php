@@ -2,12 +2,10 @@
 
 namespace Drupal\Tests\locale\Functional;
 
-use Drupal\Core\Database\Database;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\file\Entity\File;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Base class for testing updates to string translations.
@@ -65,7 +63,6 @@ abstract class LocaleUpdateBase extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
-      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
   }
 
@@ -77,7 +74,7 @@ abstract class LocaleUpdateBase extends BrowserTestBase {
    *   directory.
    */
   protected function setTranslationsDirectory($path) {
-    \Drupal::service('file_system')->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
+    file_prepare_directory($path, FILE_CREATE_DIRECTORY);
     $this->config('locale.settings')->set('translation.path', $path)->save();
   }
 
@@ -91,7 +88,7 @@ abstract class LocaleUpdateBase extends BrowserTestBase {
     $edit = ['predefined_langcode' => $langcode];
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
     $this->container->get('language_manager')->reset();
-    $this->assertTrue(\Drupal::languageManager()->getLanguage($langcode), new FormattableMarkup('Language %langcode added.', ['%langcode' => $langcode]));
+    $this->assertTrue(\Drupal::languageManager()->getLanguage($langcode), SafeMarkup::format('Language %langcode added.', ['%langcode' => $langcode]));
   }
 
   /**
@@ -131,7 +128,7 @@ EOF;
       }
     }
 
-    \Drupal::service('file_system')->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
+    file_prepare_directory($path, FILE_CREATE_DIRECTORY);
     $file = File::create([
       'uid' => 1,
       'filename' => $filename,
@@ -141,7 +138,7 @@ EOF;
       'status' => FILE_STATUS_PERMANENT,
     ]);
     file_put_contents($file->getFileUri(), $po_header . $text);
-    touch(\Drupal::service('file_system')->realpath($file->getFileUri()), $timestamp);
+    touch(drupal_realpath($file->getFileUri()), $timestamp);
     $file->save();
   }
 
@@ -280,10 +277,9 @@ EOF;
       'filename' => 'custom_module_one.de.po',
       'version' => '',
     ];
-    $connection = Database::getConnection();
     foreach ($data as $file) {
       $file = array_merge($default, $file);
-      $connection->insert('locale_file')->fields($file)->execute();
+      db_insert('locale_file')->fields($file)->execute();
     }
   }
 

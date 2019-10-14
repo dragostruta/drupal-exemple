@@ -2,12 +2,13 @@
 
 namespace Drupal\views\Plugin\EntityReferenceSelection;
 
-use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
-use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginBase;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\views\Views;
@@ -23,27 +24,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   weight = 0
  * )
  */
-class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPluginInterface {
-  use DeprecatedServicePropertyTrait;
+class ViewsSelection extends PluginBase implements SelectionInterface, ContainerFactoryPluginInterface {
 
   /**
-   * {@inheritdoc}
-   */
-  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
-
-  /**
-   * The loaded View object.
-   *
-   * @var \Drupal\views\ViewExecutable
-   */
-  protected $view;
-
-  /**
-   * The entity type manager service.
+   * The entity manager.
    *
    * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityTypeManager;
+  protected $entityManager;
 
   /**
    * The module handler service.
@@ -60,7 +48,7 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
   protected $currentUser;
 
   /**
-   * Constructs a new ViewsSelection object.
+   * Constructs a new SelectionBase object.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -68,17 +56,17 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager service.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager service.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler service.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, ModuleHandlerInterface $module_handler, AccountInterface $current_user) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, AccountInterface $current_user) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->entityTypeManager = $entity_type_manager;
+    $this->entityManager = $entity_manager;
     $this->moduleHandler = $module_handler;
     $this->currentUser = $current_user;
   }
@@ -91,37 +79,30 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager'),
+      $container->get('entity.manager'),
       $container->get('module_handler'),
       $container->get('current_user')
     );
   }
 
   /**
-   * {@inheritdoc}
+   * The loaded View object.
+   *
+   * @var \Drupal\views\ViewExecutable;
    */
-  public function defaultConfiguration() {
-    return [
-      'view' => [
-        'view_name' => NULL,
-        'display_name' => NULL,
-        'arguments' => [],
-      ],
-    ] + parent::defaultConfiguration();
-  }
+  protected $view;
 
   /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $form = parent::buildConfigurationForm($form, $form_state);
-
-    $view_settings = $this->getConfiguration()['view'];
+    $selection_handler_settings = $this->configuration['handler_settings'];
+    $view_settings = !empty($selection_handler_settings['view']) ? $selection_handler_settings['view'] : [];
     $displays = Views::getApplicableViews('entity_reference_display');
     // Filter views that list the entity type we want, and group the separate
     // displays by view.
-    $entity_type = $this->entityTypeManager->getDefinition($this->configuration['target_type']);
-    $view_storage = $this->entityTypeManager->getStorage('view');
+    $entity_type = $this->entityManager->getDefinition($this->configuration['target_type']);
+    $view_storage = $this->entityManager->getStorage('view');
 
     $options = [];
     foreach ($displays as $data) {
@@ -176,6 +157,16 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) { }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) { }
+
+  /**
    * Initializes a view.
    *
    * @param string|null $match
@@ -193,13 +184,14 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
    *   Return TRUE if the view was initialized, FALSE otherwise.
    */
   protected function initializeView($match = NULL, $match_operator = 'CONTAINS', $limit = 0, $ids = NULL) {
-    $view_name = $this->getConfiguration()['view']['view_name'];
-    $display_name = $this->getConfiguration()['view']['display_name'];
+    $handler_settings = $this->configuration['handler_settings'];
+    $view_name = $handler_settings['view']['view_name'];
+    $display_name = $handler_settings['view']['display_name'];
 
     // Check that the view is valid and the display still exists.
     $this->view = Views::getView($view_name);
     if (!$this->view || !$this->view->access($display_name)) {
-      \Drupal::messenger()->addWarning(t('The reference view %view_name cannot be found.', ['%view_name' => $view_name]));
+      drupal_set_message(t('The reference view %view_name cannot be found.', ['%view_name' => $view_name]), 'warning');
       return FALSE;
     }
     $this->view->setDisplay($display_name);
@@ -219,8 +211,9 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function getReferenceableEntities($match = NULL, $match_operator = 'CONTAINS', $limit = 0) {
-    $display_name = $this->getConfiguration()['view']['display_name'];
-    $arguments = $this->getConfiguration()['view']['arguments'];
+    $handler_settings = $this->configuration['handler_settings'];
+    $display_name = $handler_settings['view']['display_name'];
+    $arguments = $handler_settings['view']['arguments'];
     $result = [];
     if ($this->initializeView($match, $match_operator, $limit)) {
       // Get the results.
@@ -249,8 +242,9 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function validateReferenceableEntities(array $ids) {
-    $display_name = $this->getConfiguration()['view']['display_name'];
-    $arguments = $this->getConfiguration()['view']['arguments'];
+    $handler_settings = $this->configuration['handler_settings'];
+    $display_name = $handler_settings['view']['display_name'];
+    $arguments = $handler_settings['view']['arguments'];
     $result = [];
     if ($this->initializeView(NULL, 'CONTAINS', 0, $ids)) {
       // Get the results.
@@ -288,5 +282,10 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
     $value = ['view_name' => $view, 'display_name' => $display, 'arguments' => $arguments];
     $form_state->setValueForElement($element, $value);
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function entityQueryAlter(SelectInterface $query) { }
 
 }

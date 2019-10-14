@@ -3,6 +3,7 @@
 namespace Drupal\Core;
 
 use Drupal\Component\Render\MarkupInterface;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Render\BubbleableMetadata;
 
 /**
@@ -31,7 +32,7 @@ class GeneratedLink extends BubbleableMetadata implements MarkupInterface, \Coun
    * @return string
    */
   public function getGeneratedLink() {
-    return $this->generatedLink;
+    return $this->generatedLink ;
   }
 
   /**
@@ -65,7 +66,7 @@ class GeneratedLink extends BubbleableMetadata implements MarkupInterface, \Coun
    * {@inheritdoc}
    */
   public function count() {
-    return mb_strlen($this->__toString());
+    return Unicode::strlen($this->__toString());
   }
 
 }

@@ -57,6 +57,7 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
     $this->itemStorage = $item_storage;
   }
 
+
   /**
    * {@inheritdoc}
    */
@@ -69,6 +70,7 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
       $container->get('entity_type.manager')->getStorage('aggregator_item')
     );
   }
+
 
   /**
    * {@inheritdoc}
@@ -146,13 +148,13 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
         foreach ($items as $item) {
           $build['list']['#items'][$item->id()] = [
             '#type' => 'link',
-            '#url' => $item->toUrl(),
+            '#url' => $item->urlInfo(),
             '#title' => $item->label(),
           ];
         }
         $build['more_link'] = [
           '#type' => 'more_link',
-          '#url' => $feed->toUrl(),
+          '#url' => $feed->urlInfo(),
           '#attributes' => ['title' => $this->t("View this feed's recent news.")],
         ];
         return $build;
@@ -165,10 +167,8 @@ class AggregatorFeedBlock extends BlockBase implements ContainerFactoryPluginInt
    */
   public function getCacheTags() {
     $cache_tags = parent::getCacheTags();
-    if ($feed = $this->feedStorage->load($this->configuration['feed'])) {
-      $cache_tags = Cache::mergeTags($cache_tags, $feed->getCacheTags());
-    }
-    return $cache_tags;
+    $feed = $this->feedStorage->load($this->configuration['feed']);
+    return Cache::mergeTags($cache_tags, $feed->getCacheTags());
   }
 
 }

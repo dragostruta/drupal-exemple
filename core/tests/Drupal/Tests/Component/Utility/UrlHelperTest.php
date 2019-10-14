@@ -3,14 +3,14 @@
 namespace Drupal\Tests\Component\Utility;
 
 use Drupal\Component\Utility\UrlHelper;
-use PHPUnit\Framework\TestCase;
+use Drupal\Tests\UnitTestCase;
 
 /**
  * @group Utility
  *
  * @coversDefaultClass \Drupal\Component\Utility\UrlHelper
  */
-class UrlHelperTest extends TestCase {
+class UrlHelperTest extends UnitTestCase {
 
   /**
    * Provides test data for testBuildQuery().
@@ -269,14 +269,6 @@ class UrlHelperTest extends TestCase {
           'fragment' => 'footer',
         ],
       ],
-      'absolute fragment, no query' => [
-        'http://www.example.com/my/path#footer',
-        [
-          'path' => 'http://www.example.com/my/path',
-          'query' => [],
-          'fragment' => 'footer',
-        ],
-      ],
       [
         'http://',
         [
@@ -300,14 +292,6 @@ class UrlHelperTest extends TestCase {
           'query' => [
             'destination' => 'home',
           ],
-          'fragment' => 'footer',
-        ],
-      ],
-      'relative fragment, no query' => [
-        '/my/path#footer',
-        [
-          'path' => '/my/path',
-          'query' => [],
           'fragment' => 'footer',
         ],
       ],
@@ -407,11 +391,11 @@ class UrlHelperTest extends TestCase {
    * @covers ::filterBadProtocol
    *
    * @param string $uri
-   *   Protocol URI.
+   *    Protocol URI.
    * @param string $expected
-   *   Expected escaped value.
+   *    Expected escaped value.
    * @param array $protocols
-   *   Protocols to allow.
+   *    Protocols to allow.
    */
   public function testFilterBadProtocol($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);
@@ -446,11 +430,11 @@ class UrlHelperTest extends TestCase {
    * @covers ::stripDangerousProtocols
    *
    * @param string $uri
-   *   Protocol URI.
+   *    Protocol URI.
    * @param string $expected
-   *   Expected escaped value.
+   *    Expected escaped value.
    * @param array $protocols
-   *   Protocols to allow.
+   *    Protocols to allow.
    */
   public function testStripDangerousProtocols($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);
@@ -563,10 +547,6 @@ class UrlHelperTest extends TestCase {
       ['http://example.com/foo', 'http://example.com/bar', FALSE],
       ['http://example.com', 'http://example.com/bar', FALSE],
       ['http://example.com/bar', 'http://example.com/bar/', FALSE],
-      // Ensure \ is normalised to / since some browsers do that.
-      ['http://www.example.ca\@example.com', 'http://example.com', FALSE],
-      // Some browsers ignore or strip leading control characters.
-      ["\x00//www.example.ca", 'http://example.com', FALSE],
     ];
   }
 
@@ -582,12 +562,7 @@ class UrlHelperTest extends TestCase {
    * @dataProvider providerTestExternalIsLocalInvalid
    */
   public function testExternalIsLocalInvalid($url, $base_url) {
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\InvalidArgumentException::class);
-    }
-    else {
-      $this->setExpectedException(\InvalidArgumentException::class);
-    }
+    $this->setExpectedException(\InvalidArgumentException::class);
     UrlHelper::externalIsLocal($url, $base_url);
   }
 

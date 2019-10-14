@@ -2,13 +2,10 @@
 
 namespace Drupal\simpletest;
 
-@trigger_error(__NAMESPACE__ . '\InstallerTestBase is deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0. Instead, use \Drupal\FunctionalTests\Installer\InstallerTestBase, see https://www.drupal.org/node/2988752.', E_USER_DEPRECATED);
-
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
-use Drupal\Tests\RequirementsPageTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,14 +13,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Base class for testing the interactive installer.
- *
- * @deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0.
- * Use \Drupal\FunctionalTests\Installer\InstallerTestBase. See
- * https://www.drupal.org/node/2988752
  */
 abstract class InstallerTestBase extends WebTestBase {
-
-  use RequirementsPageTrait;
 
   /**
    * Custom settings.php values to write for a test run.
@@ -131,9 +122,6 @@ abstract class InstallerTestBase extends WebTestBase {
     // Select profile.
     $this->setUpProfile();
 
-    // Address the requirements problem screen, if any.
-    $this->setUpRequirementsProblem();
-
     // Configure settings.
     $this->setUpSettings();
 
@@ -205,18 +193,6 @@ abstract class InstallerTestBase extends WebTestBase {
   protected function setUpSettings() {
     $edit = $this->translatePostValues($this->parameters['forms']['install_settings_form']);
     $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
-  }
-
-  /**
-   * Installer step: Requirements problem.
-   *
-   * Override this method to test specific requirements warnings or errors
-   * during the installer.
-   *
-   * @see system_requirements()
-   */
-  protected function setUpRequirementsProblem() {
-    // Do nothing.
   }
 
   /**

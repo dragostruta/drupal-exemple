@@ -16,7 +16,7 @@ class PoDatabaseWriter implements PoWriterInterface {
    * An associative array indicating what data should be overwritten, if any.
    *
    * Elements of the array:
-   * - overwrite_options
+   * - override_options
    *   - not_customized: boolean indicating that not customized strings should
    *     be overwritten.
    *   - customized: boolean indicating that customized strings should be
@@ -109,16 +109,6 @@ class PoDatabaseWriter implements PoWriterInterface {
 
   /**
    * Set the options for the current writer.
-   *
-   * @param array $options
-   *   An associative array containing:
-   *   - overwrite_options: An array of options. Each option contains:
-   *     - not_customized: Boolean indicating that not customized strings should
-   *       be overwritten.
-   *     - customized: Boolean indicating that customized strings should be
-   *       overwritten.
-   *   - customized: The strings being imported should be saved as customized.
-   *     One of LOCALE_CUSTOMIZED or LOCALE_NOT_CUSTOMIZED.
    */
   public function setOptions(array $options) {
     if (!isset($options['overwrite_options'])) {
@@ -188,8 +178,8 @@ class PoDatabaseWriter implements PoWriterInterface {
    */
   public function writeItem(PoItem $item) {
     if ($item->isPlural()) {
-      $item->setSource(implode(PoItem::DELIMITER, $item->getSource()));
-      $item->setTranslation(implode(PoItem::DELIMITER, $item->getTranslation()));
+      $item->setSource(implode(LOCALE_PLURAL_DELIMITER, $item->getSource()));
+      $item->setTranslation(implode(LOCALE_PLURAL_DELIMITER, $item->getTranslation()));
     }
     $this->importString($item);
   }

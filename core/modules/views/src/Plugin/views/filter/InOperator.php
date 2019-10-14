@@ -2,7 +2,6 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -89,8 +88,7 @@ class InOperator extends FilterPluginBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Limit list to selected items'),
       '#description' => $this->t('If checked, the only items presented to the user will be the ones selected here.'),
-      // Safety.
-      '#default_value' => !empty($this->options['expose']['reduce']),
+      '#default_value' => !empty($this->options['expose']['reduce']), // safety
     ];
   }
 
@@ -230,9 +228,7 @@ class InOperator extends FilterPluginBase {
         '#default_value' => $default_value,
         // These are only valid for 'select' type, but do no harm to checkboxes.
         '#multiple' => TRUE,
-        // The value options can be a multidimensional array if the value form
-        // type is a select list, so make sure that they are counted correctly.
-        '#size' => min(count($options, COUNT_RECURSIVE), 8),
+        '#size' => count($options) > 8 ? 8 : count($options),
       ];
       $user_input = $form_state->getUserInput();
       if ($exposed && !isset($user_input[$identifier])) {
@@ -264,15 +260,15 @@ class InOperator extends FilterPluginBase {
     }
 
     // Because options may be an array of strings, or an array of mixed arrays
-    // and strings (optgroups), or an array of objects, or a form of Markup, we
-    // have to step through and handle each one individually.
+    // and strings (optgroups) or an array of objects, we have to
+    // step through and handle each one individually.
     $options = [];
     foreach ($input as $id => $option) {
       if (is_array($option)) {
         $options[$id] = $this->reduceValueOptions($option);
         continue;
       }
-      elseif (is_object($option) && !$option instanceof MarkupInterface) {
+      elseif (is_object($option)) {
         $keys = array_keys($option->option);
         $key = array_shift($keys);
         if (isset($this->options['value'][$key])) {
@@ -370,7 +366,7 @@ class InOperator extends FilterPluginBase {
           if ($values !== '') {
             $values .= ', ';
           }
-          if (mb_strlen($values) > 8) {
+          if (Unicode::strlen($values) > 8) {
             $values = Unicode::truncate($values, 8, FALSE, TRUE);
             break;
           }

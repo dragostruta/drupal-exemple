@@ -3,11 +3,8 @@
 namespace Drupal\image\Plugin\Field\FieldType;
 
 use Drupal\Component\Utility\Random;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\File\Exception\FileException;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\TypedData\DataDefinition;
@@ -265,7 +262,7 @@ class ImageItem extends FileItem {
       '#type' => 'checkbox',
       '#title' => t('Enable <em>Alt</em> field'),
       '#default_value' => $settings['alt_field'],
-      '#description' => t('Short description of the image used by screen readers and displayed when the image is not loaded. Enabling this field is recommended.'),
+      '#description' => t('The alt attribute may be used by search engines, screen readers, and when the image cannot be loaded. Enabling this field is recommended.'),
       '#weight' => 9,
     ];
     $element['alt_field_required'] = [
@@ -316,17 +313,12 @@ class ImageItem extends FileItem {
     $height = $this->height;
 
     // Determine the dimensions if necessary.
-    if ($this->entity && $this->entity instanceof EntityInterface) {
-      if (empty($width) || empty($height)) {
-        $image = \Drupal::service('image.factory')->get($this->entity->getFileUri());
-        if ($image->isValid()) {
-          $this->width = $image->getWidth();
-          $this->height = $image->getHeight();
-        }
+    if (empty($width) || empty($height)) {
+      $image = \Drupal::service('image.factory')->get($this->entity->getFileUri());
+      if ($image->isValid()) {
+        $this->width = $image->getWidth();
+        $this->height = $image->getHeight();
       }
-    }
-    else {
-      trigger_error(sprintf("Missing file with ID %s.", $this->target_id), E_USER_WARNING);
     }
   }
 
@@ -344,26 +336,19 @@ class ImageItem extends FileItem {
     $extension = array_rand(array_combine($extensions, $extensions));
     // Generate a max of 5 different images.
     if (!isset($images[$extension][$min_resolution][$max_resolution]) || count($images[$extension][$min_resolution][$max_resolution]) <= 5) {
-      /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-      $file_system = \Drupal::service('file_system');
-      $tmp_file = $file_system->tempnam('temporary://', 'generateImage_');
+      $tmp_file = drupal_tempnam('temporary://', 'generateImage_');
       $destination = $tmp_file . '.' . $extension;
-      try {
-        $file_system->move($tmp_file, $destination);
-      }
-      catch (FileException $e) {
-        // Ignore failed move.
-      }
-      if ($path = $random->image($file_system->realpath($destination), $min_resolution, $max_resolution)) {
+      file_unmanaged_move($tmp_file, $destination, FILE_CREATE_DIRECTORY);
+      if ($path = $random->image(drupal_realpath($destination), $min_resolution, $max_resolution)) {
         $image = File::create();
         $image->setFileUri($path);
         $image->setOwnerId(\Drupal::currentUser()->id());
         $image->setMimeType(\Drupal::service('file.mime_type.guesser')->guess($path));
-        $image->setFileName($file_system->basename($path));
+        $image->setFileName(drupal_basename($path));
         $destination_dir = static::doGetUploadLocation($settings);
-        $file_system->prepareDirectory($destination_dir, FileSystemInterface::CREATE_DIRECTORY);
+        file_prepare_directory($destination_dir, FILE_CREATE_DIRECTORY);
         $destination = $destination_dir . '/' . basename($path);
-        $file = file_move($image, $destination);
+        $file = file_move($image, $destination, FILE_CREATE_DIRECTORY);
         $images[$extension][$min_resolution][$max_resolution][$file->id()] = $file;
       }
       else {
@@ -424,7 +409,7 @@ class ImageItem extends FileItem {
     // Convert the stored UUID to a FID.
     $fids = [];
     $uuid = $settings['default_image']['uuid'];
-    if ($uuid && ($file = \Drupal::service('entity.repository')->loadEntityByUuid('file', $uuid))) {
+    if ($uuid && ($file = $this->getEntityManager()->loadEntityByUuid('file', $uuid))) {
       $fids[0] = $file->id();
     }
     $element['default_image']['uuid'] = [
@@ -442,7 +427,7 @@ class ImageItem extends FileItem {
     $element['default_image']['alt'] = [
       '#type' => 'textfield',
       '#title' => t('Alternative text'),
-      '#description' => t('Short description of the image used by screen readers and displayed when the image is not loaded. This is important for accessibility.'),
+      '#description' => t('This text will be used by screen readers, search engines, and when the image cannot be loaded.'),
       '#default_value' => $settings['default_image']['alt'],
       '#maxlength' => 512,
     ];

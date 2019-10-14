@@ -21,11 +21,10 @@ class FieldConfigListController extends EntityListController {
    *   The current route match.
    *
    * @return array
-   *   A render array as expected by
-   *   \Drupal\Core\Render\RendererInterface::render().
+   *   A render array as expected by drupal_render().
    */
   public function listing($entity_type_id = NULL, $bundle = NULL, RouteMatchInterface $route_match = NULL) {
-    return $this->entityTypeManager()->getListBuilder('field_config')->render($entity_type_id, $bundle);
+    return $this->entityManager()->getListBuilder('field_config')->render($entity_type_id, $bundle);
   }
 
 }

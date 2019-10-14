@@ -8,9 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\language\Entity\ContentLanguageSettings;
 
 /**
- * The block content type entity form.
- *
- * @internal
+ * Base form for category edit forms.
  */
 class BlockContentTypeForm extends BundleEntityFormBase {
 
@@ -97,19 +95,19 @@ class BlockContentTypeForm extends BundleEntityFormBase {
     $block_type = $this->entity;
     $status = $block_type->save();
 
-    $edit_link = $this->entity->toLink($this->t('Edit'), 'edit-form')->toString();
+    $edit_link = $this->entity->link($this->t('Edit'));
     $logger = $this->logger('block_content');
     if ($status == SAVED_UPDATED) {
-      $this->messenger()->addStatus(t('Custom block type %label has been updated.', ['%label' => $block_type->label()]));
+      drupal_set_message(t('Custom block type %label has been updated.', ['%label' => $block_type->label()]));
       $logger->notice('Custom block type %label has been updated.', ['%label' => $block_type->label(), 'link' => $edit_link]);
     }
     else {
       block_content_add_body_field($block_type->id());
-      $this->messenger()->addStatus(t('Custom block type %label has been added.', ['%label' => $block_type->label()]));
+      drupal_set_message(t('Custom block type %label has been added.', ['%label' => $block_type->label()]));
       $logger->notice('Custom block type %label has been added.', ['%label' => $block_type->label(), 'link' => $edit_link]);
     }
 
-    $form_state->setRedirectUrl($this->entity->toUrl('collection'));
+    $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
   }
 
 }

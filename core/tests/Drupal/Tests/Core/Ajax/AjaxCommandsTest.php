@@ -2,8 +2,6 @@
 
 namespace Drupal\Tests\Core\Ajax;
 
-use Drupal\Core\Ajax\AnnounceCommand;
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Ajax\AddCssCommand;
 use Drupal\Core\Ajax\AfterCommand;
@@ -27,7 +25,6 @@ use Drupal\Core\Ajax\SetDialogOptionCommand;
 use Drupal\Core\Ajax\SetDialogTitleCommand;
 use Drupal\Core\Ajax\RedirectCommand;
 use Drupal\Core\Ajax\UpdateBuildIdCommand;
-use Drupal\Core\Ajax\OpenDialogCommand;
 
 /**
  * Test coverage for various classes in the \Drupal\Core\Ajax namespace.
@@ -78,61 +75,6 @@ class AjaxCommandsTest extends UnitTestCase {
     ];
 
     $this->assertEquals($expected, $command->render());
-  }
-
-  /**
-   * @covers \Drupal\Core\Ajax\AnnounceCommand
-   *
-   * @dataProvider announceCommandProvider
-   */
-  public function testAnnounceCommand($message, $priority, array $expected) {
-    if ($priority === NULL) {
-      $command = new AnnounceCommand($message);
-    }
-    else {
-      $command = new AnnounceCommand($message, $priority);
-    }
-
-    $expected_assets = new AttachedAssets();
-    $expected_assets->setLibraries(['core/drupal.announce']);
-
-    $this->assertEquals($expected_assets, $command->getAttachedAssets());
-    $this->assertSame($expected, $command->render());
-  }
-
-  /**
-   * Data provider for testAnnounceCommand().
-   */
-  public function announceCommandProvider() {
-    return [
-      'no priority' => [
-        'Things are going to change!',
-        NULL,
-        [
-          'command' => 'announce',
-          'text' => 'Things are going to change!',
-        ],
-      ],
-      'polite priority' => [
-        'Things are going to change!',
-        'polite',
-        [
-          'command' => 'announce',
-          'text' => 'Things are going to change!',
-          'priority' => AnnounceCommand::PRIORITY_POLITE,
-        ],
-
-      ],
-      'assertive priority' => [
-        'Important!',
-        'assertive',
-        [
-          'command' => 'announce',
-          'text' => 'Important!',
-          'priority' => AnnounceCommand::PRIORITY_ASSERTIVE,
-        ],
-      ],
-    ];
   }
 
   /**
@@ -351,16 +293,27 @@ class AjaxCommandsTest extends UnitTestCase {
    * @covers \Drupal\Core\Ajax\OpenDialogCommand
    */
   public function testOpenDialogCommand() {
-    $command = new OpenDialogCommand('#some-dialog', 'Title', '<p>Text!</p>', [
-      'url' => FALSE,
-      'width' => 500,
-    ]);
+    $command = $this->getMockBuilder('Drupal\Core\Ajax\OpenDialogCommand')
+      ->setConstructorArgs([
+        '#some-dialog', 'Title', '<p>Text!</p>', [
+          'url' => FALSE,
+          'width' => 500,
+        ],
+      ])
+      ->setMethods(['getRenderedContent'])
+      ->getMock();
+
+    // This method calls the render service, which isn't available. We want it
+    // to do nothing so we mock it to return a known value.
+    $command->expects($this->once())
+      ->method('getRenderedContent')
+      ->willReturn('rendered content');
 
     $expected = [
       'command' => 'openDialog',
       'selector' => '#some-dialog',
       'settings' => NULL,
-      'data' => '<p>Text!</p>',
+      'data' => 'rendered content',
       'dialogOptions' => [
         'url' => FALSE,
         'width' => 500,
@@ -368,10 +321,6 @@ class AjaxCommandsTest extends UnitTestCase {
         'modal' => FALSE,
       ],
     ];
-    $this->assertEquals($expected, $command->render());
-
-    $command->setDialogTitle('New title');
-    $expected['dialogOptions']['title'] = 'New title';
     $this->assertEquals($expected, $command->render());
   }
 

@@ -5,7 +5,6 @@
  * Batch process to check the availability of remote or local po files.
  */
 
-use Drupal\Core\Url;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -100,27 +99,27 @@ function locale_translation_batch_status_finished($success, $results) {
   if ($success) {
     if (isset($results['failed_files'])) {
       if (\Drupal::moduleHandler()->moduleExists('dblog') && \Drupal::currentUser()->hasPermission('access site reports')) {
-        $message = \Drupal::translation()->formatPlural(count($results['failed_files']), 'One translation file could not be checked. <a href=":url">See the log</a> for details.', '@count translation files could not be checked. <a href=":url">See the log</a> for details.', [':url' => Url::fromRoute('dblog.overview')->toString()]);
+        $message = \Drupal::translation()->formatPlural(count($results['failed_files']), 'One translation file could not be checked. <a href=":url">See the log</a> for details.', '@count translation files could not be checked. <a href=":url">See the log</a> for details.', [':url' => \Drupal::url('dblog.overview')]);
       }
       else {
         $message = \Drupal::translation()->formatPlural(count($results['failed_files']), 'One translation files could not be checked. See the log for details.', '@count translation files could not be checked. See the log for details.');
       }
-      \Drupal::messenger()->addError($message);
+      drupal_set_message($message, 'error');
     }
     if (isset($results['files'])) {
-      \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural(
+      drupal_set_message(\Drupal::translation()->formatPlural(
         count($results['files']),
         'Checked available interface translation updates for one project.',
         'Checked available interface translation updates for @count projects.'
       ));
     }
     if (!isset($results['failed_files']) && !isset($results['files'])) {
-      \Drupal::messenger()->addStatus(t('Nothing to check.'));
+      drupal_set_message(t('Nothing to check.'));
     }
     \Drupal::state()->set('locale.translation_last_checked', REQUEST_TIME);
   }
   else {
-    \Drupal::messenger()->addError(t('An error occurred trying to check available interface translation updates.'));
+    drupal_set_message(t('An error occurred trying to check available interface translation updates.'), 'error');
   }
 }
 
@@ -239,13 +238,11 @@ function locale_translation_http_check($uri) {
   $logger = \Drupal::logger('locale');
   try {
     $actual_uri = NULL;
-    $response = \Drupal::service('http_client_factory')->fromOptions([
-      'allow_redirects' => [
-        'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $request_uri) use (&$actual_uri) {
-          $actual_uri = (string) $request_uri;
-        },
-      ],
-    ])->head($uri);
+    $response = \Drupal::service('http_client_factory')->fromOptions(['allow_redirects' => [
+      'on_redirect' => function(RequestInterface $request, ResponseInterface $response, UriInterface $request_uri) use (&$actual_uri) {
+        $actual_uri = (string) $request_uri;
+      }
+    ]])->head($uri);
     $result = [];
 
     // Return the effective URL if it differs from the requested.
@@ -293,7 +290,7 @@ function locale_translation_http_check($uri) {
  *   File object if download was successful. FALSE on failure.
  */
 function locale_translation_download_source($source_file, $directory = 'temporary://') {
-  if ($uri = system_retrieve_file($source_file->uri, $directory, FALSE, FILE_EXISTS_REPLACE)) {
+  if ($uri = system_retrieve_file($source_file->uri, $directory)) {
     $file = clone($source_file);
     $file->type = LOCALE_TRANSLATION_LOCAL;
     $file->uri = $uri;

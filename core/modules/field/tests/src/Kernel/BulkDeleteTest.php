@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\field\Kernel;
 
-use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -106,7 +105,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
       'field_name' => 'bf_1',
       'entity_type' => $this->entityTypeId,
       'type' => 'test_field',
-      'cardinality' => 1,
+      'cardinality' => 1
     ]);
     $field_storage->save();
     $this->fieldStorages[] = $field_storage;
@@ -114,7 +113,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
       'field_name' => 'bf_2',
       'entity_type' => $this->entityTypeId,
       'type' => 'test_field',
-      'cardinality' => 4,
+      'cardinality' => 4
     ]);
     $field_storage->save();
     $this->fieldStorages[] = $field_storage;
@@ -163,11 +162,10 @@ class BulkDeleteTest extends FieldKernelTestBase {
     $bundle = reset($this->bundles);
     $field_storage = reset($this->fieldStorages);
     $field_name = $field_storage->getName();
-    $storage = \Drupal::entityTypeManager()->getStorage('entity_test');
+    $factory = \Drupal::service('entity.query');
 
     // There are 10 entities of this bundle.
-    $found = $storage
-      ->getQuery()
+    $found = $factory->get('entity_test')
       ->condition('type', $bundle)
       ->execute();
     $this->assertEqual(count($found), 10, 'Correct number of entities found before deleting');
@@ -183,11 +181,12 @@ class BulkDeleteTest extends FieldKernelTestBase {
     $this->assertEqual($field->getTargetBundle(), $bundle, 'The deleted field is for the correct bundle');
 
     // Check that the actual stored content did not change during delete.
+    $storage = \Drupal::entityManager()->getStorage($this->entityTypeId);
     /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
     $table_mapping = $storage->getTableMapping();
     $table = $table_mapping->getDedicatedDataTableName($field_storage);
     $column = $table_mapping->getFieldColumnName($field_storage, 'value');
-    $result = Database::getConnection()->select($table, 't')
+    $result = db_select($table, 't')
       ->fields('t')
       ->execute();
     foreach ($result as $row) {
@@ -195,8 +194,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
     }
 
     // There are 0 entities of this bundle with non-deleted data.
-    $found = $storage
-      ->getQuery()
+    $found = $factory->get('entity_test')
       ->condition('type', $bundle)
       ->condition("$field_name.deleted", 0)
       ->execute();
@@ -204,8 +202,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
 
     // There are 10 entities of this bundle when deleted fields are allowed, and
     // their values are correct.
-    $found = $storage
-      ->getQuery()
+    $found = $factory->get('entity_test')
       ->condition('type', $bundle)
       ->condition("$field_name.deleted", 1)
       ->sort('id')
@@ -225,7 +222,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
       'field_name' => $field_name,
       'entity_type' => $this->entityTypeId,
       'type' => 'test_field',
-      'cardinality' => 1,
+      'cardinality' => 1
     ]);
     $deleted_field_storage->save();
     // Create the field.
@@ -256,7 +253,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
       'field_name' => $field_name,
       'entity_type' => $this->entityTypeId,
       'type' => 'test_field',
-      'cardinality' => 1,
+      'cardinality' => 1
     ]);
     $field_storage->save();
     FieldConfig::create([

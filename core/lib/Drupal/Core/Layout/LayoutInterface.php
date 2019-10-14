@@ -2,16 +2,19 @@
 
 namespace Drupal\Core\Layout;
 
-use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\DerivativeInspectionInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
-use Drupal\Component\Plugin\ConfigurableInterface;
-use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Component\Plugin\ConfigurablePluginInterface;
 
 /**
  * Provides an interface for static Layout plugins.
+ *
+ * @internal
+ *   The layout system is currently experimental and should only be leveraged by
+ *   experimental modules and development releases of contributed modules.
+ *   See https://www.drupal.org/core/experimental for more information.
  */
-interface LayoutInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurableInterface, DependentPluginInterface, ConfigurablePluginInterface {
+interface LayoutInterface extends PluginInspectionInterface, DerivativeInspectionInterface, ConfigurablePluginInterface {
 
   /**
    * Build a render array for layout with regions.

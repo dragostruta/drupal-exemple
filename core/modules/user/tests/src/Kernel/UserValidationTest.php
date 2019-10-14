@@ -8,7 +8,6 @@ use Drupal\Core\Render\Element\Email;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
-use Drupal\user\UserInterface;
 
 /**
  * Verify that user validity checks behave as designed.
@@ -41,30 +40,24 @@ class UserValidationTest extends KernelTestBase {
    * Tests user name validation.
    */
   public function testUsernames() {
-    $test_cases = [
-      // '<username>' => ['<description>', 'assert<testName>'].
+    $test_cases = [ // '<username>' => array('<description>', 'assert<testName>'),
       'foo'                    => ['Valid username', 'assertNull'],
       'FOO'                    => ['Valid username', 'assertNull'],
       'Foo O\'Bar'             => ['Valid username', 'assertNull'],
       'foo@bar'                => ['Valid username', 'assertNull'],
       'foo@example.com'        => ['Valid username', 'assertNull'],
-      // invalid domains are allowed in usernames.
-      'foo@-example.com'       => ['Valid username', 'assertNull'],
+      'foo@-example.com'       => ['Valid username', 'assertNull'], // invalid domains are allowed in usernames
       'þòøÇßªř€'               => ['Valid username', 'assertNull'],
-      // '+' symbol is allowed.
-      'foo+bar'                => ['Valid username', 'assertNull'],
-      // runes.
-      'ᚠᛇᚻ᛫ᛒᛦᚦ'                => ['Valid UTF8 username', 'assertNull'],
+      'foo+bar'                => ['Valid username', 'assertNull'], // '+' symbol is allowed
+      'ᚠᛇᚻ᛫ᛒᛦᚦ'                => ['Valid UTF8 username', 'assertNull'], // runes
       ' foo'                   => ['Invalid username that starts with a space', 'assertNotNull'],
       'foo '                   => ['Invalid username that ends with a space', 'assertNotNull'],
       'foo  bar'               => ['Invalid username that contains 2 spaces \'&nbsp;&nbsp;\'', 'assertNotNull'],
       ''                       => ['Invalid empty username', 'assertNotNull'],
       'foo/'                   => ['Invalid username containing invalid chars', 'assertNotNull'],
-      // NULL.
-      'foo' . chr(0) . 'bar'   => ['Invalid username containing chr(0)', 'assertNotNull'],
-      // CR.
-      'foo' . chr(13) . 'bar'  => ['Invalid username containing chr(13)', 'assertNotNull'],
-      str_repeat('x', UserInterface::USERNAME_MAX_LENGTH + 1) => ['Invalid excessively long username', 'assertNotNull'],
+      'foo' . chr(0) . 'bar'   => ['Invalid username containing chr(0)', 'assertNotNull'], // NULL
+      'foo' . chr(13) . 'bar'  => ['Invalid username containing chr(13)', 'assertNotNull'], // CR
+      str_repeat('x', USERNAME_MAX_LENGTH + 1) => ['Invalid excessively long username', 'assertNotNull'],
     ];
     foreach ($test_cases as $name => $test_case) {
       list($description, $test) = $test_case;
@@ -216,7 +209,7 @@ class UserValidationTest extends KernelTestBase {
   protected function assertAllowedValuesViolation(EntityInterface $entity, $field_name) {
     $violations = $entity->validate();
     $this->assertEqual(count($violations), 1, "Allowed values violation for $field_name found.");
-    $this->assertEqual($violations[0]->getPropertyPath(), $field_name === 'langcode' ? "$field_name.0" : "$field_name.0.value");
+    $this->assertEqual($violations[0]->getPropertyPath(), "$field_name.0.value");
     $this->assertEqual($violations[0]->getMessage(), t('The value you selected is not a valid choice.'));
   }
 

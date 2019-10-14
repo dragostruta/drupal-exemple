@@ -119,7 +119,7 @@ class Date extends FieldPluginBase {
       '#type' => 'select',
       '#title' => $this->t('Timezone'),
       '#description' => $this->t('Timezone to be used for date output.'),
-      '#options' => ['' => $this->t('- Default site/user timezone -')] + system_time_zones(FALSE, TRUE),
+      '#options' => ['' => $this->t('- Default site/user timezone -')] + system_time_zones(FALSE),
       '#default_value' => $this->options['timezone'],
     ];
     foreach (array_merge(['custom'], array_keys($date_formats)) as $timezone_date_formats) {
@@ -143,9 +143,7 @@ class Date extends FieldPluginBase {
 
     if ($value) {
       $timezone = !empty($this->options['timezone']) ? $this->options['timezone'] : NULL;
-      // Will be positive for a datetime in the past (ago), and negative for a
-      // datetime in the future (hence).
-      $time_diff = REQUEST_TIME - $value;
+      $time_diff = REQUEST_TIME - $value; // will be positive for a datetime in the past (ago), and negative for a datetime in the future (hence)
       switch ($format) {
         case 'raw time ago':
           return $this->dateFormatter->formatTimeDiffSince($value, ['granularity' => is_numeric($custom_format) ? $custom_format : 2]);
@@ -171,12 +169,12 @@ class Date extends FieldPluginBase {
 
         case 'custom':
           if ($custom_format == 'r') {
-            return $this->dateFormatter->format($value, $format, $custom_format, $timezone, 'en');
+            return format_date($value, $format, $custom_format, $timezone, 'en');
           }
-          return $this->dateFormatter->format($value, $format, $custom_format, $timezone);
+          return format_date($value, $format, $custom_format, $timezone);
 
         default:
-          return $this->dateFormatter->format($value, $format, '', $timezone);
+          return format_date($value, $format, '', $timezone);
       }
     }
   }

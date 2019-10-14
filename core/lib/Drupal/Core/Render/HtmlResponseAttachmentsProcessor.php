@@ -219,30 +219,6 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
   }
 
   /**
-   * Formats an attribute string for an HTTP header.
-   *
-   * @param array $attributes
-   *   An associative array of attributes such as 'rel'.
-   *
-   * @return string
-   *   A ; separated string ready for insertion in a HTTP header. No escaping is
-   *   performed for HTML entities, so this string is not safe to be printed.
-   *
-   * @internal
-   *
-   * @see https://www.drupal.org/node/3000051
-   */
-  public static function formatHttpHeaderAttributes(array $attributes = []) {
-    foreach ($attributes as $attribute => &$data) {
-      if (is_array($data)) {
-        $data = implode(' ', $data);
-      }
-      $data = $attribute . '="' . $data . '"';
-    }
-    return $attributes ? ' ' . implode('; ', $attributes) : '';
-  }
-
-  /**
    * Renders placeholders (#attached['placeholders']).
    *
    * First, the HTML response object is converted to an equivalent render array,
@@ -408,8 +384,8 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
   /**
    * Transform a html_head_link array into html_head and http_header arrays.
    *
-   * Variable html_head_link is a special case of html_head which can be present
-   * as a link item in the HTML head section, and also as a Link: HTTP header,
+   * html_head_link is a special case of html_head which can be present as
+   * a link item in the HTML head section, and also as a Link: HTTP header,
    * depending on options in the render array. Processing it can add to both the
    * html_head and http_header sections.
    *
@@ -445,7 +421,7 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
         // Also add a HTTP header "Link:".
         $href = '<' . Html::escape($attributes['href']) . '>';
         unset($attributes['href']);
-        if ($param = static::formatHttpHeaderAttributes($attributes)) {
+        if ($param = drupal_http_header_attributes($attributes)) {
           $href .= ';' . $param;
         }
 

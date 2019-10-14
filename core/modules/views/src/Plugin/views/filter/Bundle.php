@@ -56,8 +56,6 @@ class Bundle extends InOperator {
    *   The plugin implementation definition.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager.
-   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundle_info_service
-   *   The bundle info service.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager, EntityTypeBundleInfoInterface $bundle_info_service) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -103,7 +101,7 @@ class Bundle extends InOperator {
         $options[$type] = $info['label'];
       }
 
-      array_multisort($options, SORT_ASC, SORT_REGULAR, array_keys($options));
+      asort($options);
       $this->valueOptions = $options;
     }
 

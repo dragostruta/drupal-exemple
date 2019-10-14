@@ -20,7 +20,6 @@ class GroupByNumeric extends NumericFilter {
       $this->{$info[$this->operator]['method']}($field);
     }
   }
-
   protected function opBetween($field) {
     $placeholder_min = $this->placeholder();
     $placeholder_max = $this->placeholder();
@@ -53,8 +52,6 @@ class GroupByNumeric extends NumericFilter {
     return $this->getField(parent::adminLabel($short));
   }
 
-  public function canGroup() {
-    return FALSE;
-  }
+  public function canGroup() { return FALSE; }
 
 }

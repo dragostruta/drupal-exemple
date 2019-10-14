@@ -2,8 +2,6 @@
 
 namespace Drupal\system\Tests\Module;
 
-@trigger_error(__NAMESPACE__ . '\ModuleTestBase is deprecated for removal before Drupal 9.0.0. Use \Drupal\Tests\system\Functional\Module\ModuleTestBase instead. See https://www.drupal.org/node/2999939', E_USER_DEPRECATED);
-
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Config\FileStorage;
@@ -15,8 +13,6 @@ use Drupal\simpletest\WebTestBase;
  *
  * @deprecated Scheduled for removal in Drupal 9.0.0.
  *   Use \Drupal\Tests\system\Functional\Module\ModuleTestBase instead.
- *
- * @see https://www.drupal.org/node/2999939
  */
 abstract class ModuleTestBase extends WebTestBase {
 
@@ -46,8 +42,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   specified base table. Defaults to TRUE.
    */
   public function assertTableCount($base_table, $count = TRUE) {
-    $connection = Database::getConnection();
-    $tables = $connection->schema()->findTables($connection->prefixTables('{' . $base_table . '}') . '%');
+    $tables = db_find_tables(Database::getConnection()->prefixTables('{' . $base_table . '}') . '%');
 
     if ($count) {
       return $this->assertTrue($tables, format_string('Tables matching "@base_table" found.', ['@base_table' => $base_table]));
@@ -64,9 +59,8 @@ abstract class ModuleTestBase extends WebTestBase {
   public function assertModuleTablesExist($module) {
     $tables = array_keys(drupal_get_module_schema($module));
     $tables_exist = TRUE;
-    $schema = Database::getConnection()->schema();
     foreach ($tables as $table) {
-      if (!$schema->tableExists($table)) {
+      if (!db_table_exists($table)) {
         $tables_exist = FALSE;
       }
     }
@@ -82,9 +76,8 @@ abstract class ModuleTestBase extends WebTestBase {
   public function assertModuleTablesDoNotExist($module) {
     $tables = array_keys(drupal_get_module_schema($module));
     $tables_exist = FALSE;
-    $schema = Database::getConnection()->schema();
     foreach ($tables as $table) {
-      if ($schema->tableExists($table)) {
+      if (db_table_exists($table)) {
         $tables_exist = TRUE;
       }
     }
@@ -97,10 +90,8 @@ abstract class ModuleTestBase extends WebTestBase {
    * @param string $module
    *   The name of the module.
    *
-   * @return bool|null
-   *   TRUE if configuration has been installed, FALSE otherwise. Returns NULL
-   *   if the module configuration directory does not exist or does not contain
-   *   any configuration files.
+   * @return bool
+   *   TRUE if configuration has been installed, FALSE otherwise.
    */
   public function assertModuleConfig($module) {
     $module_config_dir = drupal_get_path('module', $module) . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
@@ -191,7 +182,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   A link to associate with the message.
    */
   public function assertLogMessage($type, $message, $variables = [], $severity = RfcLogLevel::NOTICE, $link = '') {
-    $count = Database::getConnection()->select('watchdog', 'w')
+    $count = db_select('watchdog', 'w')
       ->condition('type', $type)
       ->condition('message', $message)
       ->condition('variables', serialize($variables))

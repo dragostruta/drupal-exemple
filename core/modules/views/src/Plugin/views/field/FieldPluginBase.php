@@ -4,6 +4,7 @@ namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Render\MarkupInterface;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Form\FormStateInterface;
@@ -67,9 +68,6 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    */
   const RENDER_TEXT_PHASE_EMPTY = 2;
 
-  /**
-   * @var string
-   */
   public $field_alias = 'unknown';
   public $aliases = [];
 
@@ -106,7 +104,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   /**
    * Keeps track of the last render index.
    *
-   * @var int|null
+   * @var int|NULL
    */
   protected $lastRenderIndex;
 
@@ -185,13 +183,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
           }
 
           if (empty($table_alias)) {
-            trigger_error(sprintf(
-              "Handler % tried to add additional_field %s but % could not be added!",
-              $this->definition['id'],
-              $identifier,
-              $info['table']
-            ), E_USER_WARNING);
-
+            debug(t('Handler @handler tried to add additional_field @identifier but @table could not be added!', ['@handler' => $this->definition['id'], '@identifier' => $identifier, '@table' => $info['table']]));
             $this->aliases[$identifier] = 'broken';
             continue;
           }
@@ -317,7 +309,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       // @todo Add possible html5 elements.
       $elements = [
         '' => $this->t('- Use default -'),
-        '0' => $this->t('- None -'),
+        '0' => $this->t('- None -')
       ];
       $elements += \Drupal::config('views.settings')->get('field_rewrite_elements');
     }
@@ -724,11 +716,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         '#title' => $this->t('Text'),
         '#type' => 'textarea',
         '#default_value' => $this->options['alter']['text'],
-        // The tag list will be escaped.
-        '#description' => $this->t('The text to display for this field. You may enter data from this view as per the "Replacement patterns" below. You may include <a href="@twig_docs">Twig</a> or the following allowed HTML tags: <code>@tags</code>', [
-          '@twig_docs' => 'https://twig.symfony.com/doc/' . \Twig_Environment::MAJOR_VERSION . '.x',
-          '@tags' => '<' . implode('> <', Xss::getAdminTagList()) . '>',
-        ]),
+        '#description' => $this->t('The text to display for this field. You may include HTML or <a href=":url">Twig</a>. You may enter data from this view as per the "Replacement patterns" below.', [':url' => CoreUrl::fromUri('http://twig.sensiolabs.org/documentation')->toString()]),
         '#states' => [
           'visible' => [
             ':input[name="options[alter][alter_text]"]' => ['checked' => TRUE],
@@ -869,6 +857,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         ],
       ];
 
+
       // Get a list of the available fields and arguments for token replacement.
 
       // Setup the tokens for fields.
@@ -876,10 +865,10 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $optgroup_arguments = (string) t('Arguments');
       $optgroup_fields = (string) t('Fields');
       foreach ($previous as $id => $label) {
-        $options[$optgroup_fields]["{{ $id }}"] = substr(strrchr($label, ":"), 2);
+        $options[$optgroup_fields]["{{ $id }}"] = substr(strrchr($label, ":"), 2 );
       }
       // Add the field to the list of options.
-      $options[$optgroup_fields]["{{ {$this->options['id']} }}"] = substr(strrchr($this->adminLabel(), ":"), 2);
+      $options[$optgroup_fields]["{{ {$this->options['id']} }}"] = substr(strrchr($this->adminLabel(), ":"), 2 );
 
       foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
         $options[$optgroup_arguments]["{{ arguments.$arg }}"] = $this->t('@argument title', ['@argument' => $handler->adminLabel()]);
@@ -1065,7 +1054,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       '#type' => 'textarea',
       '#title' => $this->t('No results text'),
       '#default_value' => $this->options['empty'],
-      '#description' => $this->t('Provide text to display if this field contains an empty result. You may include HTML. You may enter data from this view as per the "Replacement patterns" in the "Rewrite Results" section above.'),
+      '#description' => $this->t('Provide text to display if this field contains an empty result. You may include HTML. You may enter data from this view as per the "Replacement patterns" in the "Rewrite Results" section below.'),
       '#fieldset' => 'empty_field_behavior',
     ];
 
@@ -1116,7 +1105,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   /**
    * {@inheritdoc}
    */
-  public function preRender(&$values) {}
+  public function preRender(&$values) { }
 
   /**
    * {@inheritdoc}
@@ -1297,7 +1286,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         $base_path = base_path();
         // Checks whether the path starts with the base_path.
         if (strpos($more_link_path, $base_path) === 0) {
-          $more_link_path = mb_substr($more_link_path, mb_strlen($base_path));
+          $more_link_path = Unicode::substr($more_link_path, Unicode::strlen($base_path));
         }
 
         // @todo Views should expect and store a leading /. See
@@ -1397,7 +1386,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     ];
 
     $alter += [
-      'path' => NULL,
+      'path' => NULL
     ];
 
     $path = $alter['path'];
@@ -1724,14 +1713,14 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    * field ID is terms, then the tokens might be {{ terms__tid }} and
    * {{ terms__name }}.
    */
-  protected function addSelfTokens(&$tokens, $item) {}
+  protected function addSelfTokens(&$tokens, $item) { }
 
   /**
    * Document any special tokens this field might use for itself.
    *
    * @see addSelfTokens()
    */
-  protected function documentSelfTokens(&$tokens) {}
+  protected function documentSelfTokens(&$tokens) { }
 
   /**
    * {@inheritdoc}
@@ -1801,8 +1790,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    *   The trimmed string.
    */
   public static function trimText($alter, $value) {
-    if (mb_strlen($value) > $alter['max_length']) {
-      $value = mb_substr($value, 0, $alter['max_length']);
+    if (Unicode::strlen($value) > $alter['max_length']) {
+      $value = Unicode::substr($value, 0, $alter['max_length']);
       if (!empty($alter['word_boundary'])) {
         $regex = "(.*)\b.+";
         if (function_exists('mb_ereg')) {

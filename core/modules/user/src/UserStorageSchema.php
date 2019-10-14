@@ -17,11 +17,9 @@ class UserStorageSchema extends SqlContentEntityStorageSchema {
   protected function getEntitySchema(ContentEntityTypeInterface $entity_type, $reset = FALSE) {
     $schema = parent::getEntitySchema($entity_type, $reset);
 
-    if ($data_table = $this->storage->getDataTable()) {
-      $schema[$data_table]['unique keys'] += [
-        'user__name' => ['name', 'langcode'],
-      ];
-    }
+    $schema['users_field_data']['unique keys'] += [
+      'user__name' => ['name', 'langcode'],
+    ];
 
     return $schema;
   }
@@ -51,7 +49,7 @@ class UserStorageSchema extends SqlContentEntityStorageSchema {
           $schema['fields'][$field_name]['not null'] = TRUE;
           // Make sure the field is no longer than 191 characters so we can
           // add a unique constraint in MySQL.
-          $schema['fields'][$field_name]['length'] = UserInterface::USERNAME_MAX_LENGTH;
+          $schema['fields'][$field_name]['length'] = USERNAME_MAX_LENGTH;
           break;
 
         case 'mail':

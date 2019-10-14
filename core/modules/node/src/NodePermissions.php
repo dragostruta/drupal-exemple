@@ -2,6 +2,7 @@
 
 namespace Drupal\node;
 
+use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\node\Entity\NodeType;
 
@@ -11,6 +12,7 @@ use Drupal\node\Entity\NodeType;
 class NodePermissions {
 
   use StringTranslationTrait;
+  use UrlGeneratorTrait;
 
   /**
    * Returns an array of node type permissions.
@@ -60,15 +62,14 @@ class NodePermissions {
       ],
       "view $type_id revisions" => [
         'title' => $this->t('%type_name: View revisions', $type_params),
-        'description' => t('To view a revision, you also need permission to view the content item.'),
       ],
       "revert $type_id revisions" => [
         'title' => $this->t('%type_name: Revert revisions', $type_params),
-        'description' => t('To revert a revision, you also need permission to edit the content item.'),
+        'description' => t('Role requires permission <em>view revisions</em> and <em>edit rights</em> for nodes in question, or <em>administer nodes</em>.'),
       ],
       "delete $type_id revisions" => [
         'title' => $this->t('%type_name: Delete revisions', $type_params),
-        'description' => $this->t('To delete a revision, you also need permission to delete the content item.'),
+        'description' => $this->t('Role requires permission to <em>view revisions</em> and <em>delete rights</em> for nodes in question, or <em>administer nodes</em>.'),
       ],
     ];
   }

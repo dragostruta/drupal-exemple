@@ -2,7 +2,7 @@
 
 namespace Drupal\FunctionalJavascriptTests\Core\Session;
 
-use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
+use Drupal\FunctionalJavascriptTests\JavascriptTestBase;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
 
 /**
@@ -10,7 +10,7 @@ use Drupal\menu_link_content\Entity\MenuLinkContent;
  *
  * @group session
  */
-class SessionTest extends WebDriverTestBase {
+class SessionTest extends JavascriptTestBase {
 
   /**
    * {@inheritdoc}
@@ -48,10 +48,13 @@ class SessionTest extends WebDriverTestBase {
     // number of times.
     $this->drupalGet('<front>');
 
+    $session_assert = $this->assertSession();
+
     $page = $this->getSession()->getPage();
 
     for ($i = 0; $i < 25; $i++) {
       $page->clickLink('Link to front page');
+      $session_assert->statusCodeEquals(200);
     }
   }
 

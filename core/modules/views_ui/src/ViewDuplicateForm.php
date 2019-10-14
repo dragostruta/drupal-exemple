@@ -6,8 +6,6 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form controller for the Views duplicate form.
- *
- * @internal
  */
 class ViewDuplicateForm extends ViewFormBase {
 
@@ -74,7 +72,7 @@ class ViewDuplicateForm extends ViewFormBase {
     $this->entity->save();
 
     // Redirect the user to the view admin form.
-    $form_state->setRedirectUrl($this->entity->toUrl('edit-form'));
+    $form_state->setRedirectUrl($this->entity->urlInfo('edit-form'));
   }
 
 }

@@ -12,18 +12,9 @@ use Drupal\tour\TourInterface;
  * @ConfigEntityType(
  *   id = "tour",
  *   label = @Translation("Tour"),
- *   label_collection = @Translation("Tours"),
- *   label_singular = @Translation("tour"),
- *   label_plural = @Translation("tours"),
- *   label_count = @PluralTranslation(
- *     singular = "@count tour",
- *     plural = "@count tours",
- *   ),
  *   handlers = {
- *     "view_builder" = "Drupal\tour\TourViewBuilder",
- *     "access" = "Drupal\tour\TourAccessControlHandler",
+ *     "view_builder" = "Drupal\tour\TourViewBuilder"
  *   },
- *   admin_permission = "administer site configuration",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label"

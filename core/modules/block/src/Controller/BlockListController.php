@@ -48,8 +48,7 @@ class BlockListController extends EntityListController {
    *   The current request.
    *
    * @return array
-   *   A render array as expected by
-   *   \Drupal\Core\Render\RendererInterface::render().
+   *   A render array as expected by drupal_render().
    */
   public function listing($theme = NULL, Request $request = NULL) {
     $theme = $theme ?: $this->config('system.theme')->get('default');
@@ -57,7 +56,7 @@ class BlockListController extends EntityListController {
       throw new NotFoundHttpException();
     }
 
-    return $this->entityTypeManager()->getListBuilder('block')->render($theme, $request);
+    return $this->entityManager()->getListBuilder('block')->render($theme, $request);
   }
 
 }

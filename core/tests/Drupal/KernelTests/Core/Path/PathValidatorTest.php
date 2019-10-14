@@ -6,7 +6,6 @@ use Drupal\Core\Routing\RequestContext;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests the path validator.
@@ -17,19 +16,16 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  */
 class PathValidatorTest extends KernelTestBase {
 
-  use UserCreationTrait;
-
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['path', 'entity_test', 'system', 'user'];
+  public static $modules = ['path', 'entity_test', 'user'];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $this->setUpCurrentUser();
     $this->installEntitySchema('entity_test');
   }
 
@@ -48,10 +44,8 @@ class PathValidatorTest extends KernelTestBase {
       'PUT',
       'PATCH',
       'DELETE',
-      // Used in CLI context.
-      NULL,
-      // If no request was even pushed onto the request stack, and hence.
-      FALSE,
+      NULL, // Used in CLI context.
+      FALSE, // If no request was even pushed onto the request stack, and hence
     ];
     foreach ($methods as $method) {
       if ($method === FALSE) {
@@ -67,7 +61,7 @@ class PathValidatorTest extends KernelTestBase {
       $url = $pathValidator->getUrlIfValidWithoutAccessCheck($entity->toUrl()->toString(TRUE)->getGeneratedUrl());
       $this->assertEquals($method, $requestContext->getMethod());
       $this->assertInstanceOf(Url::class, $url);
-      $this->assertSame(['entity_test' => $entity->id()], $url->getRouteParameters());
+      $this->assertSame($url->getRouteParameters(), ['entity_test' => $entity->id()]);
     }
   }
 

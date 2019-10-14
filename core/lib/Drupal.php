@@ -6,9 +6,8 @@
  */
 
 use Drupal\Core\DependencyInjection\ContainerNotInitializedException;
-use Drupal\Core\Messenger\LegacyMessenger;
-use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Url;
 
 /**
  * Static Service Container wrapper.
@@ -82,7 +81,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.7.8';
+  const VERSION = '8.3.5';
 
   /**
    * Core API compatibility.
@@ -121,7 +120,7 @@ class Drupal {
   /**
    * Returns the currently active global container.
    *
-   * @return \Symfony\Component\DependencyInjection\ContainerInterface
+   * @return \Symfony\Component\DependencyInjection\ContainerInterface|null
    *
    * @throws \Drupal\Core\DependencyInjection\ContainerNotInitializedException
    */
@@ -140,6 +139,7 @@ class Drupal {
   public static function hasContainer() {
     return static::$container !== NULL;
   }
+
 
   /**
    * Retrieves a service from the container.
@@ -229,7 +229,7 @@ class Drupal {
   }
 
   /**
-   * Retrieves the request stack.
+   * Retrives the request stack.
    *
    * @return \Symfony\Component\HttpFoundation\RequestStack
    *   The request stack
@@ -319,20 +319,10 @@ class Drupal {
    * One common usecase is to provide a class which contains the actual code
    * of a hook implementation, without having to create a service.
    *
-   * @param string $class
-   *   (optional) A class name to instantiate.
-   *
-   * @return \Drupal\Core\DependencyInjection\ClassResolverInterface|object
-   *   The class resolver or if $class is provided, a class instance with a
-   *   given class definition.
-   *
-   * @throws \InvalidArgumentException
-   *   If $class does not exist.
+   * @return \Drupal\Core\DependencyInjection\ClassResolverInterface
+   *   The class resolver.
    */
-  public static function classResolver($class = NULL) {
-    if ($class) {
-      return static::getContainer()->get('class_resolver')->getInstanceFromDefinition($class);
-    }
+  public static function classResolver() {
     return static::getContainer()->get('class_resolver');
   }
 
@@ -577,7 +567,6 @@ class Drupal {
    *   Url::fromRoute().
    */
   public static function url($route_name, $route_parameters = [], $options = [], $collect_bubbleable_metadata = FALSE) {
-    @trigger_error('Drupal::url() is deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0. Instead create a \Drupal\Core\Url object directly, for example using Url::fromRoute()', E_USER_DEPRECATED);
     return static::getContainer()->get('url_generator')->generateFromRoute($route_name, $route_parameters, $options, $collect_bubbleable_metadata);
   }
 
@@ -766,18 +755,6 @@ class Drupal {
    */
   public static function time() {
     return static::getContainer()->get('datetime.time');
-  }
-
-  /**
-   * Returns the messenger.
-   *
-   * @return \Drupal\Core\Messenger\MessengerInterface
-   *   The messenger.
-   */
-  public static function messenger() {
-    // @todo Replace with service once LegacyMessenger is removed in 9.0.0.
-    // @see https://www.drupal.org/node/2928994
-    return new LegacyMessenger();
   }
 
 }

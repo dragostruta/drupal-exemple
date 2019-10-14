@@ -47,7 +47,7 @@ class Result extends AreaPluginBase {
         '@page_count -- the total page count',
       ],
     ];
-    $list = \Drupal::service('renderer')->render($item_list);
+    $list = drupal_render($item_list);
     $form['content'] = [
       '#title' => $this->t('Display'),
       '#type' => 'textarea',
@@ -115,13 +115,11 @@ class Result extends AreaPluginBase {
     // Send the output.
     if (!empty($total) || !empty($this->options['empty'])) {
       $output .= Xss::filterAdmin(str_replace(array_keys($replacements), array_values($replacements), $format));
-      // Return as render array.
-      return [
-        '#markup' => $output,
-      ];
     }
-
-    return [];
+    // Return as render array.
+    return [
+      '#markup' => $output,
+    ];
   }
 
 }

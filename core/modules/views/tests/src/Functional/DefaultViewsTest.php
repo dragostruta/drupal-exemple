@@ -4,14 +4,15 @@ namespace Drupal\Tests\views\Functional;
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
+use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\views\Views;
 use Drupal\comment\Entity\Comment;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\taxonomy\Entity\Term;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 
 /**
  * Tests the default views provided by views.
@@ -52,7 +53,7 @@ class DefaultViewsTest extends ViewTestBase {
     $vocabulary = Vocabulary::create([
       'name' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
-      'vid' => mb_strtolower($this->randomMachineName()),
+      'vid' => Unicode::strtolower($this->randomMachineName()),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'help' => '',
       'nodes' => ['page' => 'page'],
@@ -61,7 +62,7 @@ class DefaultViewsTest extends ViewTestBase {
     $vocabulary->save();
 
     // Create a field.
-    $field_name = mb_strtolower($this->randomMachineName());
+    $field_name = Unicode::strtolower($this->randomMachineName());
 
     $handler_settings = [
       'target_bundles' => [
@@ -96,18 +97,9 @@ class DefaultViewsTest extends ViewTestBase {
         'status' => CommentInterface::PUBLISHED,
         'entity_id' => $node->id(),
         'entity_type' => 'node',
-        'field_name' => 'comment',
+        'field_name' => 'comment'
       ];
       Comment::create($comment)->save();
-
-      $unpublished_comment = [
-        'uid' => $user->id(),
-        'status' => CommentInterface::NOT_PUBLISHED,
-        'entity_id' => $node->id(),
-        'entity_type' => 'node',
-        'field_name' => 'comment',
-      ];
-      Comment::create($unpublished_comment)->save();
     }
 
     // Some views, such as the "Who's Online" view, only return results if at
@@ -173,19 +165,16 @@ class DefaultViewsTest extends ViewTestBase {
     // Create additional nodes compared to the one in the setup method.
     // Create two nodes in the same month, and one in each following month.
     $node = [
-      // Sun, 19 Nov 1978 05:00:00 GMT.
-      'created' => 280299600,
+      'created' => 280299600, // Sun, 19 Nov 1978 05:00:00 GMT
     ];
     $this->drupalCreateNode($node);
     $this->drupalCreateNode($node);
     $node = [
-      // Tue, 19 Dec 1978 05:00:00 GMT.
-      'created' => 282891600,
+      'created' => 282891600, // Tue, 19 Dec 1978 05:00:00 GMT
     ];
     $this->drupalCreateNode($node);
     $node = [
-      // Fri, 19 Jan 1979 05:00:00 GMT.
-      'created' => 285570000,
+      'created' => 285570000, // Fri, 19 Jan 1979 05:00:00 GMT
     ];
     $this->drupalCreateNode($node);
 

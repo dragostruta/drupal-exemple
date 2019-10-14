@@ -2,12 +2,10 @@
 
 namespace Drupal\Tests\locale\Functional;
 
-use Drupal\Core\Url;
-use Drupal\Core\Database\Database;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Language\LanguageInterface;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Adds a new locale and translates its name. Checks the validation of
@@ -46,7 +44,7 @@ class LocaleTranslationUiTest extends BrowserTestBase {
     // Code for the language.
     $langcode = 'xx';
     // The English name for the language. This will be translated.
-    $name = 'cucurbitaceae';
+    $name = $this->randomMachineName(16);
     // This will be the translation of $name.
     $translation = $this->randomMachineName(16);
     $translation_to_en = $this->randomMachineName(16);
@@ -98,7 +96,7 @@ class LocaleTranslationUiTest extends BrowserTestBase {
     $this->drupalPostForm('admin/config/regional/translate', $edit, t('Save translations'));
     $this->assertText(t('The strings have been saved.'), 'The strings have been saved.');
     $url_bits = explode('?', $this->getUrl());
-    $this->assertEqual($url_bits[0], Url::fromRoute('locale.translate_page', [], ['absolute' => TRUE])->toString(), 'Correct page redirection.');
+    $this->assertEqual($url_bits[0], \Drupal::url('locale.translate_page', [], ['absolute' => TRUE]), 'Correct page redirection.');
     $search = [
       'string' => $name,
       'langcode' => $langcode,
@@ -234,7 +232,7 @@ class LocaleTranslationUiTest extends BrowserTestBase {
 
     // Retrieve the source string of the first string available in the
     // {locales_source} table and translate it.
-    $query = Database::getConnection()->select('locales_source', 's');
+    $query = db_select('locales_source', 's');
     $query->addJoin('INNER', 'locales_location', 'l', 's.lid = l.lid');
     $source = $query->fields('s', ['source'])
       ->condition('l.type', 'javascript')
@@ -261,13 +259,13 @@ class LocaleTranslationUiTest extends BrowserTestBase {
 
     $locale_javascripts = \Drupal::state()->get('locale.translation.javascript') ?: [];
     $js_file = 'public://' . $config->get('javascript.directory') . '/' . $langcode . '_' . $locale_javascripts[$langcode] . '.js';
-    $this->assertTrue($result = file_exists($js_file), new FormattableMarkup('JavaScript file created: %file', ['%file' => $result ? $js_file : 'not found']));
+    $this->assertTrue($result = file_exists($js_file), SafeMarkup::format('JavaScript file created: %file', ['%file' => $result ? $js_file : 'not found']));
 
     // Test JavaScript translation rebuilding.
-    \Drupal::service('file_system')->delete($js_file);
-    $this->assertTrue($result = !file_exists($js_file), new FormattableMarkup('JavaScript file deleted: %file', ['%file' => $result ? $js_file : 'found']));
+    file_unmanaged_delete($js_file);
+    $this->assertTrue($result = !file_exists($js_file), SafeMarkup::format('JavaScript file deleted: %file', ['%file' => $result ? $js_file : 'found']));
     _locale_rebuild_js($langcode);
-    $this->assertTrue($result = file_exists($js_file), new FormattableMarkup('JavaScript file rebuilt: %file', ['%file' => $result ? $js_file : 'not found']));
+    $this->assertTrue($result = file_exists($js_file), SafeMarkup::format('JavaScript file rebuilt: %file', ['%file' => $result ? $js_file : 'not found']));
   }
 
   /**

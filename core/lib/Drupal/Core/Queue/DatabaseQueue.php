@@ -3,7 +3,7 @@
 namespace Drupal\Core\Queue;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\DatabaseException;
+use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 
 /**
@@ -30,7 +30,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
   /**
    * The database connection.
    *
-   * @var \Drupal\Core\Database\Connection
+   * @var \Drupal\Core\Database\Connection $connection
    */
   protected $connection;
 
@@ -100,7 +100,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
    */
   public function numberOfItems() {
     try {
-      return (int) $this->connection->query('SELECT COUNT(item_id) FROM {' . static::TABLE_NAME . '} WHERE name = :name', [':name' => $this->name])
+      return $this->connection->query('SELECT COUNT(item_id) FROM {' . static::TABLE_NAME . '} WHERE name = :name', [':name' => $this->name])
         ->fetchField();
     }
     catch (\Exception $e) {
@@ -250,7 +250,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
     // If another process has already created the queue table, attempting to
     // recreate it will throw an exception. In this case just catch the
     // exception and do nothing.
-    catch (DatabaseException $e) {
+    catch (SchemaObjectExistsException $e) {
       return TRUE;
     }
     return FALSE;
@@ -277,8 +277,6 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
 
   /**
    * Defines the schema for the queue table.
-   *
-   * @internal
    */
   public function schemaDefinition() {
     return [

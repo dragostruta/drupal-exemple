@@ -33,18 +33,17 @@ class GarbageCollectionTest extends KernelTestBase {
    */
   public function testGarbageCollection() {
     $collection = $this->randomMachineName();
-    $connection = Database::getConnection();
-    $store = new DatabaseStorageExpirable($collection, new PhpSerialize(), $connection);
+    $store = new DatabaseStorageExpirable($collection, new PhpSerialize(), Database::getConnection());
 
     // Insert some items and confirm that they're set.
     for ($i = 0; $i <= 3; $i++) {
       $store->setWithExpire('key_' . $i, $this->randomObject(), rand(500, 100000));
     }
-    $this->assertIdentical(count($store->getAll()), 4, 'Four items were written to the storage.');
+    $this->assertIdentical(sizeof($store->getAll()), 4, 'Four items were written to the storage.');
 
     // Manually expire the data.
     for ($i = 0; $i <= 3; $i++) {
-      $connection->merge('key_value_expire')
+      db_merge('key_value_expire')
         ->keys([
             'name' => 'key_' . $i,
             'collection' => $collection,
@@ -54,6 +53,7 @@ class GarbageCollectionTest extends KernelTestBase {
           ])
         ->execute();
     }
+
 
     // Perform a new set operation and then trigger garbage collection.
     $store->setWithExpire('autumn', 'winter', rand(500, 1000000));

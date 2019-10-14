@@ -3,8 +3,6 @@
 namespace Drupal\system\Form;
 
 use Drupal\Core\Extension\ThemeHandlerInterface;
-use Drupal\Core\File\Exception\FileException;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\StreamWrapper\PublicStream;
@@ -18,8 +16,6 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 
 /**
  * Displays theme configuration for entire site and individual themes.
- *
- * @internal
  */
 class ThemeSettingsForm extends ConfigFormBase {
 
@@ -59,13 +55,6 @@ class ThemeSettingsForm extends ConfigFormBase {
   protected $themeManager;
 
   /**
-   * The file system.
-   *
-   * @var \Drupal\Core\File\FileSystemInterface
-   */
-  protected $fileSystem;
-
-  /**
    * Constructs a ThemeSettingsForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -76,23 +65,14 @@ class ThemeSettingsForm extends ConfigFormBase {
    *   The theme handler.
    * @param \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface $mime_type_guesser
    *   The MIME type guesser instance to use.
-   * @param \Drupal\Core\Theme\ThemeManagerInterface $theme_manager
-   *   The theme manager.
-   * @param \Drupal\Core\File\FileSystemInterface $file_system
-   *   The file system.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, MimeTypeGuesserInterface $mime_type_guesser, ThemeManagerInterface $theme_manager, FileSystemInterface $file_system = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, MimeTypeGuesserInterface $mime_type_guesser, ThemeManagerInterface $theme_manager) {
     parent::__construct($config_factory);
 
     $this->moduleHandler = $module_handler;
     $this->themeHandler = $theme_handler;
     $this->mimeTypeGuesser = $mime_type_guesser;
     $this->themeManager = $theme_manager;
-    if (!$file_system) {
-      @trigger_error('The file_system service must be passed to ThemeSettingsForm::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
-      $file_system = \Drupal::service('file_system');
-    }
-    $this->fileSystem = $file_system;
   }
 
   /**
@@ -104,8 +84,7 @@ class ThemeSettingsForm extends ConfigFormBase {
       $container->get('module_handler'),
       $container->get('theme_handler'),
       $container->get('file.mime_type.guesser'),
-      $container->get('theme.manager'),
-      $container->get('file_system')
+      $container->get('theme.manager')
     );
   }
 
@@ -155,11 +134,11 @@ class ThemeSettingsForm extends ConfigFormBase {
 
     $form['var'] = [
       '#type' => 'hidden',
-      '#value' => $var,
+      '#value' => $var
     ];
     $form['config_key'] = [
       '#type' => 'hidden',
-      '#value' => $config_key,
+      '#value' => $config_key
     ];
 
     // Toggle settings
@@ -233,10 +212,7 @@ class ThemeSettingsForm extends ConfigFormBase {
         '#type' => 'file',
         '#title' => t('Upload logo image'),
         '#maxlength' => 40,
-        '#description' => t("If you don't have direct file access to the server, use this field to upload your logo."),
-        '#upload_validators' => [
-          'file_validate_is_image' => [],
-        ],
+        '#description' => t("If you don't have direct file access to the server, use this field to upload your logo.")
       ];
     }
 
@@ -276,12 +252,7 @@ class ThemeSettingsForm extends ConfigFormBase {
       $form['favicon']['settings']['favicon_upload'] = [
         '#type' => 'file',
         '#title' => t('Upload favicon image'),
-        '#description' => t("If you don't have direct file access to the server, use this field to upload your shortcut icon."),
-        '#upload_validators' => [
-          'file_validate_extensions' => [
-            'ico png gif jpg jpeg apng svg',
-          ],
-        ],
+        '#description' => t("If you don't have direct file access to the server, use this field to upload your shortcut icon.")
       ];
     }
 
@@ -353,21 +324,9 @@ class ThemeSettingsForm extends ConfigFormBase {
       // Process the theme and all its base themes.
       foreach ($theme_keys as $theme) {
         // Include the theme-settings.php file.
-        $theme_path = drupal_get_path('theme', $theme);
-        $theme_settings_file = $theme_path . '/theme-settings.php';
-        $theme_file = $theme_path . '/' . $theme . '.theme';
-        $filenames = [$theme_settings_file, $theme_file];
-        foreach ($filenames as $filename) {
-          if (file_exists($filename)) {
-            require_once $filename;
-
-            // The file must be required for the cached form too.
-            $files = $form_state->getBuildInfo()['files'];
-            if (!in_array($filename, $files)) {
-              $files[] = $filename;
-            }
-            $form_state->addBuildInfo('files', $files);
-          }
+        $filename = DRUPAL_ROOT . '/' . $themes[$theme]->getPath() . '/theme-settings.php';
+        if (file_exists($filename)) {
+          require_once $filename;
         }
 
         // Call theme-specific settings.
@@ -396,22 +355,36 @@ class ThemeSettingsForm extends ConfigFormBase {
     parent::validateForm($form, $form_state);
 
     if ($this->moduleHandler->moduleExists('file')) {
+      // Handle file uploads.
+      $validators = ['file_validate_is_image' => []];
 
       // Check for a new uploaded logo.
-      if (isset($form['logo'])) {
-        $file = _file_save_upload_from_form($form['logo']['settings']['logo_upload'], $form_state, 0);
+      $file = file_save_upload('logo_upload', $validators, FALSE, 0);
+      if (isset($file)) {
+        // File upload was attempted.
         if ($file) {
           // Put the temporary file in form_values so we can save it on submit.
           $form_state->setValue('logo_upload', $file);
         }
+        else {
+          // File upload failed.
+          $form_state->setErrorByName('logo_upload', $this->t('The logo could not be uploaded.'));
+        }
       }
 
+      $validators = ['file_validate_extensions' => ['ico png gif jpg jpeg apng svg']];
+
       // Check for a new uploaded favicon.
-      if (isset($form['favicon'])) {
-        $file = _file_save_upload_from_form($form['favicon']['settings']['favicon_upload'], $form_state, 0);
+      $file = file_save_upload('favicon_upload', $validators, FALSE, 0);
+      if (isset($file)) {
+        // File upload was attempted.
         if ($file) {
           // Put the temporary file in form_values so we can save it on submit.
           $form_state->setValue('favicon_upload', $file);
+        }
+        else {
+          // File upload failed.
+          $form_state->setErrorByName('favicon_upload', $this->t('The favicon could not be uploaded.'));
         }
       }
 
@@ -461,26 +434,16 @@ class ThemeSettingsForm extends ConfigFormBase {
 
     // If the user uploaded a new logo or favicon, save it to a permanent location
     // and use it in place of the default theme-provided file.
-    try {
-      if (!empty($values['logo_upload'])) {
-        $filename = $this->fileSystem->copy($values['logo_upload']->getFileUri(), file_default_scheme() . '://');
-        $values['default_logo'] = 0;
-        $values['logo_path'] = $filename;
-      }
+    if (!empty($values['logo_upload'])) {
+      $filename = file_unmanaged_copy($values['logo_upload']->getFileUri());
+      $values['default_logo'] = 0;
+      $values['logo_path'] = $filename;
     }
-    catch (FileException $e) {
-      // Ignore.
-    }
-    try {
-      if (!empty($values['favicon_upload'])) {
-        $filename = $this->fileSystem->copy($values['favicon_upload']->getFileUri(), file_default_scheme() . '://');
-        $values['default_favicon'] = 0;
-        $values['favicon_path'] = $filename;
-        $values['toggle_favicon'] = 1;
-      }
-    }
-    catch (FileException $e) {
-      // Ignore.
+    if (!empty($values['favicon_upload'])) {
+      $filename = file_unmanaged_copy($values['favicon_upload']->getFileUri());
+      $values['default_favicon'] = 0;
+      $values['favicon_path'] = $filename;
+      $values['toggle_favicon'] = 1;
     }
     unset($values['logo_upload']);
     unset($values['favicon_upload']);
@@ -517,7 +480,7 @@ class ThemeSettingsForm extends ConfigFormBase {
    */
   protected function validatePath($path) {
     // Absolute local file paths are invalid.
-    if ($this->fileSystem->realpath($path) == $path) {
+    if (drupal_realpath($path) == $path) {
       return FALSE;
     }
     // A path relative to the Drupal root or a fully qualified URI is valid.

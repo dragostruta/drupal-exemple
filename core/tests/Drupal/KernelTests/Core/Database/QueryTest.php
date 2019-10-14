@@ -53,7 +53,7 @@ class QueryTest extends DatabaseTestBase {
 
     // Test that the insert query that was used in the SQL injection attempt did
     // not result in a row being inserted in the database.
-    $result = $this->connection->select('test')
+    $result = db_select('test')
       ->condition('name', 'test12345678')
       ->countQuery()
       ->execute()
@@ -67,18 +67,12 @@ class QueryTest extends DatabaseTestBase {
   public function testConditionOperatorArgumentsSQLInjection() {
     $injection = "IS NOT NULL) ;INSERT INTO {test} (name) VALUES ('test12345678'); -- ";
 
-    $previous_error_handler = set_error_handler(function ($severity, $message, $filename, $lineno, $context) use (&$previous_error_handler) {
-      // Normalize the filename to use UNIX directory separators.
-      if (preg_match('@core/lib/Drupal/Core/Database/Query/Condition.php$@', str_replace(DIRECTORY_SEPARATOR, '/', $filename))) {
-        // Convert errors to exceptions for testing purposes below.
-        throw new \ErrorException($message, 0, $severity, $filename, $lineno);
-      }
-      if ($previous_error_handler) {
-        return $previous_error_handler($severity, $message, $filename, $lineno, $context);
-      }
+    // Convert errors to exceptions for testing purposes below.
+    set_error_handler(function ($severity, $message, $filename, $lineno) {
+      throw new \ErrorException($message, 0, $severity, $filename, $lineno);
     });
     try {
-      $result = $this->connection->select('test', 't')
+      $result = db_select('test', 't')
         ->fields('t')
         ->condition('name', 1, $injection)
         ->execute();
@@ -90,7 +84,7 @@ class QueryTest extends DatabaseTestBase {
 
     // Test that the insert query that was used in the SQL injection attempt did
     // not result in a row being inserted in the database.
-    $result = $this->connection->select('test')
+    $result = db_select('test')
       ->condition('name', 'test12345678')
       ->countQuery()
       ->execute()
@@ -100,13 +94,13 @@ class QueryTest extends DatabaseTestBase {
     // Attempt SQLi via union query with no unsafe characters.
     $this->enableModules(['user']);
     $this->installEntitySchema('user');
-    $this->connection->insert('test')
+    db_insert('test')
       ->fields(['name' => '123456'])
       ->execute();
     $injection = "= 1 UNION ALL SELECT password FROM user WHERE uid =";
 
     try {
-      $result = $this->connection->select('test', 't')
+      $result = db_select('test', 't')
         ->fields('t', ['name', 'name'])
         ->condition('name', 1, $injection)
         ->execute();
@@ -117,13 +111,13 @@ class QueryTest extends DatabaseTestBase {
     }
 
     // Attempt SQLi via union query - uppercase tablename.
-    $this->connection->insert('TEST_UPPERCASE')
+    db_insert('TEST_UPPERCASE')
       ->fields(['name' => 'secrets'])
       ->execute();
     $injection = "IS NOT NULL) UNION ALL SELECT name FROM {TEST_UPPERCASE} -- ";
 
     try {
-      $result = $this->connection->select('test', 't')
+      $result = db_select('test', 't')
         ->fields('t', ['name'])
         ->condition('name', 1, $injection)
         ->execute();

@@ -18,7 +18,7 @@ class PathAliasMenuLinkContentTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_link_content', 'system', 'link', 'test_page_test', 'user'];
+  public static $modules = ['menu_link_content', 'system', 'link', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,6 @@ class PathAliasMenuLinkContentTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installEntitySchema('user');
     $this->installEntitySchema('menu_link_content');
 
     // Ensure that the weight of module_link_content is higher than system.
@@ -44,6 +43,7 @@ class PathAliasMenuLinkContentTest extends KernelTestBase {
     $definition
       ->addTag('path_processor_inbound', ['priority' => 100]);
   }
+
 
   /**
    * Tests the path aliasing changing.

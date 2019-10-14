@@ -3,19 +3,17 @@
 namespace Drupal\aggregator\Plugin\aggregator\processor;
 
 use Drupal\aggregator\Entity\Item;
-use Drupal\aggregator\FeedInterface;
-use Drupal\aggregator\FeedStorageInterface;
 use Drupal\aggregator\ItemStorageInterface;
 use Drupal\aggregator\Plugin\AggregatorPluginSettingsBase;
 use Drupal\aggregator\Plugin\ProcessorInterface;
+use Drupal\aggregator\FeedInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\ConfigFormBaseTrait;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Url;
+use Drupal\Core\Routing\UrlGeneratorTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -30,8 +28,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 class DefaultProcessor extends AggregatorPluginSettingsBase implements ProcessorInterface, ContainerFactoryPluginInterface {
-
   use ConfigFormBaseTrait;
+  use UrlGeneratorTrait;
 
   /**
    * Contains the configuration object factory.
@@ -55,13 +53,6 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   protected $dateFormatter;
 
   /**
-   * The messenger.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
-   */
-  protected $messenger;
-
-  /**
    * Constructs a DefaultProcessor object.
    *
    * @param array $configuration
@@ -76,14 +67,11 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
    *   The entity storage for feed items.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
-   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
-   *   The messenger.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config, ItemStorageInterface $item_storage, DateFormatterInterface $date_formatter, MessengerInterface $messenger) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config, ItemStorageInterface $item_storage, DateFormatterInterface $date_formatter) {
     $this->configFactory = $config;
     $this->itemStorage = $item_storage;
     $this->dateFormatter = $date_formatter;
-    $this->messenger = $messenger;
     // @todo Refactor aggregator plugins to ConfigEntity so merging
     //   the configuration here is not needed.
     parent::__construct($configuration + $this->getConfiguration(), $plugin_id, $plugin_definition);
@@ -99,8 +87,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       $plugin_definition,
       $container->get('config.factory'),
       $container->get('entity_type.manager')->getStorage('aggregator_item'),
-      $container->get('date.formatter'),
-      $container->get('messenger')
+      $container->get('date.formatter')
     );
   }
 
@@ -124,7 +111,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
     }, array_combine($counts, $counts));
     $intervals = [3600, 10800, 21600, 32400, 43200, 86400, 172800, 259200, 604800, 1209600, 2419200, 4838400, 9676800];
     $period = array_map([$this->dateFormatter, 'formatInterval'], array_combine($intervals, $intervals));
-    $period[FeedStorageInterface::CLEAR_NEVER] = t('Never');
+    $period[AGGREGATOR_CLEAR_NEVER] = t('Never');
 
     $form['processors'][$info['id']] = [];
     // Only wrap into details if there is a basic configuration.
@@ -150,11 +137,11 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       '#title' => t('Discard items older than'),
       '#default_value' => $config->get('items.expire'),
       '#options' => $period,
-      '#description' => t('Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => Url::fromRoute('system.status')->toString()]),
+      '#description' => t('Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => $this->url('system.status')]),
     ];
 
     $lengths = [0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000];
-    $options = array_map(function ($length) {
+    $options = array_map(function($length) {
       return ($length == 0) ? t('Unlimited') : $this->formatPlural($length, '1 character', '@count characters');
     }, array_combine($lengths, $lengths));
 
@@ -244,7 +231,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       $this->itemStorage->delete($items);
     }
     // @todo This should be moved out to caller with a different message maybe.
-    $this->messenger->addStatus(t('The news items from %site have been deleted.', ['%site' => $feed->label()]));
+    drupal_set_message(t('The news items from %site have been deleted.', ['%site' => $feed->label()]));
   }
 
   /**
@@ -255,7 +242,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   public function postProcess(FeedInterface $feed) {
     $aggregator_clear = $this->configuration['items']['expire'];
 
-    if ($aggregator_clear != FeedStorageInterface::CLEAR_NEVER) {
+    if ($aggregator_clear != AGGREGATOR_CLEAR_NEVER) {
       // Delete all items that are older than flush item timer.
       $age = REQUEST_TIME - $aggregator_clear;
       $result = $this->itemStorage->getQuery()

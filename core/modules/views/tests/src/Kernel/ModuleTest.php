@@ -9,6 +9,7 @@ namespace Drupal\Tests\views\Kernel;
  */
 use Drupal\views\Plugin\views\filter\Standard;
 use Drupal\views\Views;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Render\FormattableMarkup;
 
 class ModuleTest extends ViewsKernelTestBase {
@@ -28,7 +29,7 @@ class ModuleTest extends ViewsKernelTestBase {
   public static $modules = ['field', 'user', 'block'];
 
   /**
-   * Stores the last triggered error.
+   * Stores the last triggered error, for example via debug().
    *
    * @var string
    *
@@ -37,9 +38,9 @@ class ModuleTest extends ViewsKernelTestBase {
   protected $lastErrorMessage;
 
   /**
-   * Tests the  ViewsHandlerManager::getHandler() method.
+   * Tests the views_get_handler method.
    *
-   * @see \Drupal\views\Plugin\ViewsHandlerManager::getHandler()
+   * @see views_get_handler()
    */
   public function testViewsGetHandler() {
     $types = ['field', 'area', 'filter'];
@@ -139,7 +140,6 @@ class ModuleTest extends ViewsKernelTestBase {
    */
   public function testLoadFunctions() {
     $this->enableModules(['text', 'node']);
-    $this->installEntitySchema('node');
     $this->installConfig(['node']);
     $storage = $this->container->get('entity.manager')->getStorage('view');
 
@@ -158,13 +158,13 @@ class ModuleTest extends ViewsKernelTestBase {
     $this->assertEquals(array_keys($all_views), array_keys(Views::getAllViews()), 'Views::getAllViews works as expected.');
 
     // Test Views::getEnabledViews().
-    $expected_enabled = array_filter($all_views, function ($view) {
+    $expected_enabled = array_filter($all_views, function($view) {
       return views_view_is_enabled($view);
     });
     $this->assertEquals(array_keys($expected_enabled), array_keys(Views::getEnabledViews()), 'Expected enabled views returned.');
 
     // Test Views::getDisabledViews().
-    $expected_disabled = array_filter($all_views, function ($view) {
+    $expected_disabled = array_filter($all_views, function($view) {
       return views_view_is_disabled($view);
     });
     $this->assertEquals(array_keys($expected_disabled), array_keys(Views::getDisabledViews()), 'Expected disabled views returned.');
@@ -256,7 +256,7 @@ class ModuleTest extends ViewsKernelTestBase {
       list($plugin_type, $plugin_id) = explode(':', $key);
       $plugin_def = $this->container->get("plugin.manager.views.$plugin_type")->getDefinition($plugin_id);
 
-      $this->assertTrue(isset($plugin_list[$key]), new FormattableMarkup('The expected @key plugin list key was found.', ['@key' => $key]));
+      $this->assertTrue(isset($plugin_list[$key]), SafeMarkup::format('The expected @key plugin list key was found.', ['@key' => $key]));
       $plugin_details = $plugin_list[$key];
 
       $this->assertEqual($plugin_details['type'], $plugin_type, 'The expected plugin type was found.');

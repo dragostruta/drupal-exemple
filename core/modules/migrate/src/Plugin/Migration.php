@@ -155,17 +155,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   protected $migration_tags = [];
 
   /**
-   * Whether the migration is auditable.
-   *
-   * If set to TRUE, the migration's IDs will be audited. This means that, if
-   * the highest destination ID is greater than the highest source ID, a warning
-   * will be displayed that entities might be overwritten.
-   *
-   * @var bool
-   */
-  protected $audit = FALSE;
-
-  /**
    * These migrations, if run, must be executed before this migration.
    *
    * These are different from the configuration dependencies. Migration
@@ -216,7 +205,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   protected $sourcePluginManager;
 
   /**
-   * The process plugin manager.
+   * Thep process plugin manager.
    *
    * @var \Drupal\migrate\Plugin\MigratePluginManager
    */
@@ -277,7 +266,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
     $this->destinationPluginManager = $destination_plugin_manager;
     $this->idMapPluginManager = $idmap_plugin_manager;
 
-    foreach (NestedArray::mergeDeepArray([$plugin_definition, $configuration], TRUE) as $key => $value) {
+    foreach (NestedArray::mergeDeep($plugin_definition, $configuration) as $key => $value) {
       $this->$key = $value;
     }
   }
@@ -323,11 +312,8 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    *
    * @deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use
    *   more specific getters instead.
-   *
-   * @see https://www.drupal.org/node/2873795
    */
   public function get($property) {
-    @trigger_error('\Drupal\migrate\Plugin\Migration::get() is deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use more specific getters instead. See https://www.drupal.org/node/2873795', E_USER_DEPRECATED);
     return isset($this->$property) ? $this->$property : NULL;
   }
 
@@ -411,7 +397,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    */
   public function getDestinationPlugin($stub_being_requested = FALSE) {
     if ($stub_being_requested && !empty($this->destination['no_stub'])) {
-      throw new MigrateSkipRowException('Stub requested but not made because no_stub configuration is set.');
+      throw new MigrateSkipRowException();
     }
     if (!isset($this->destinationPlugin)) {
       $this->destinationPlugin = $this->destinationPluginManager->createInstance($this->destination['plugin'], $this->destination, $this);
@@ -555,6 +541,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
     return $this;
   }
 
+
   /**
    * {@inheritdoc}
    */
@@ -583,7 +570,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    */
   public function mergeProcessOfProperty($property, array $process_of_property) {
     // If we already have a process value then merge the incoming process array
-    // otherwise simply set it.
+    //otherwise simply set it.
     $current_process = $this->getProcess();
     if (isset($current_process[$property])) {
       $this->process = NestedArray::mergeDeepArray([$current_process, $this->getProcessNormalized([$property => $process_of_property])], TRUE);
@@ -620,22 +607,19 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   }
 
   /**
-   * Find migration dependencies from migration_lookup and sub_process plugins.
+   * Find migration dependencies from the migration and the iterator plugins.
    *
-   * @param array $process
-   *   A process configuration array.
-   *
+   * @param $process
    * @return array
-   *   The migration dependencies.
    */
   protected function findMigrationDependencies($process) {
     $return = [];
     foreach ($this->getProcessNormalized($process) as $process_pipeline) {
       foreach ($process_pipeline as $plugin_configuration) {
-        if (in_array($plugin_configuration['plugin'], ['migration', 'migration_lookup'], TRUE)) {
+        if ($plugin_configuration['plugin'] == 'migration') {
           $return = array_merge($return, (array) $plugin_configuration['migration']);
         }
-        if (in_array($plugin_configuration['plugin'], ['iterator', 'sub_process'], TRUE)) {
+        if ($plugin_configuration['plugin'] == 'iterator') {
           $return = array_merge($return, $this->findMigrationDependencies($plugin_configuration['process']));
         }
       }
@@ -689,13 +673,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    */
   public function getMigrationTags() {
     return $this->migration_tags;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isAuditable() {
-    return (bool) $this->audit;
   }
 
 }

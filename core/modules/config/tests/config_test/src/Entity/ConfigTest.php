@@ -28,15 +28,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *     "label" = "label",
  *     "status" = "status"
  *   },
- *   config_export = {
- *     "id",
- *     "label",
- *     "weight",
- *     "style",
- *     "size",
- *     "size_value",
- *     "protected_property",
- *   },
  *   links = {
  *     "edit-form" = "/admin/structure/config_test/manage/{config_test}",
  *     "delete-form" = "/admin/structure/config_test/manage/{config_test}/delete",
@@ -125,24 +116,10 @@ class ConfigTest extends ConfigEntityBase implements ConfigTestInterface {
   /**
    * {@inheritdoc}
    */
-  public function calculateDependencies() {
-    parent::calculateDependencies();
-    if ($module = \Drupal::state()->get('config_test_new_dependency', FALSE)) {
-      $this->addDependency('module', $module);
-    }
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function onDependencyRemoval(array $dependencies) {
-    // Record which entities have this method called on and what dependencies
-    // are passed.
+    // Record which entities have this method called on.
     $called = \Drupal::state()->get('config_test.on_dependency_removal_called', []);
-    $called[$this->id()] = $dependencies;
-    $called[$this->id()]['config'] = array_keys($called[$this->id()]['config']);
-    $called[$this->id()]['content'] = array_keys($called[$this->id()]['content']);
+    $called[] = $this->id();
     \Drupal::state()->set('config_test.on_dependency_removal_called', $called);
 
     $changed = parent::onDependencyRemoval($dependencies);

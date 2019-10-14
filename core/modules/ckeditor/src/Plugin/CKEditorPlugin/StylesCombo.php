@@ -101,9 +101,7 @@ class StylesCombo extends CKEditorPluginBase implements CKEditorPluginConfigurab
       $form_state->setError($element, $this->t('The provided list of styles is syntactically incorrect.'));
     }
     else {
-      $style_names = array_map(function ($style) {
-        return $style['name'];
-      }, $styles_setting);
+      $style_names = array_map(function ($style) { return $style['name']; }, $styles_setting);
       if (count($style_names) !== count(array_unique($style_names))) {
         $form_state->setError($element, $this->t('Each style must have a unique label.'));
       }
@@ -157,7 +155,7 @@ class StylesCombo extends CKEditorPluginBase implements CKEditorPluginConfigurab
       ];
       if (!empty($classes)) {
         $configured_style['attributes'] = [
-          'class' => implode(' ', array_map('trim', $classes)),
+          'class' => implode(' ', array_map('trim', $classes))
         ];
       }
       $styles_set[] = $configured_style;

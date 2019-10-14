@@ -2,6 +2,7 @@
 
 namespace Drupal\Core\Config\Entity\Query;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\Query\ConditionBase;
 use Drupal\Core\Entity\Query\ConditionInterface;
 use Drupal\Core\Entity\Query\QueryException;
@@ -31,10 +32,10 @@ class Condition extends ConditionBase {
 
         // Lowercase condition value(s) for case-insensitive matches.
         if (is_array($condition['value'])) {
-          $condition['value'] = array_map('mb_strtolower', $condition['value']);
+          $condition['value'] = array_map('Drupal\Component\Utility\Unicode::strtolower', $condition['value']);
         }
         elseif (!is_bool($condition['value'])) {
-          $condition['value'] = mb_strtolower($condition['value']);
+          $condition['value'] = Unicode::strtolower($condition['value']);
         }
 
         $single_conditions[] = $condition;
@@ -49,7 +50,7 @@ class Condition extends ConditionBase {
           // matter and this config object does not match.
           // If OR and it is matching, then the rest of conditions do not
           // matter and this config object does match.
-          if ($and != $match) {
+          if ($and != $match ) {
             break;
           }
         }
@@ -153,17 +154,10 @@ class Condition extends ConditionBase {
    *   TRUE when matches else FALSE.
    */
   protected function match(array $condition, $value) {
-    // "IS NULL" and "IS NOT NULL" conditions can also deal with array values,
-    // so we return early for them to avoid problems.
-    if (in_array($condition['operator'], ['IS NULL', 'IS NOT NULL'], TRUE)) {
-      $should_be_set = $condition['operator'] === 'IS NOT NULL';
-      return $should_be_set === isset($value);
-    }
-
     if (isset($value)) {
       // We always want a case-insensitive match.
       if (!is_bool($value)) {
-        $value = mb_strtolower($value);
+        $value = Unicode::strtolower($value);
       }
 
       switch ($condition['operator']) {
@@ -189,11 +183,15 @@ class Condition extends ConditionBase {
           return strpos($value, $condition['value']) !== FALSE;
         case 'ENDS_WITH':
           return substr($value, -strlen($condition['value'])) === (string) $condition['value'];
+        case 'IS NOT NULL':
+          return TRUE;
+        case 'IS NULL':
+          return FALSE;
         default:
           throw new QueryException('Invalid condition operator.');
       }
     }
-    return FALSE;
+    return $condition['operator'] === 'IS NULL';
   }
 
 }

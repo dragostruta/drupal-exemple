@@ -2,13 +2,13 @@
 
 namespace Drupal\Tests\contact\Functional;
 
-use Drupal\Core\Url;
+use Drupal\Component\Utility\Unicode;
 use Drupal\contact\Entity\ContactForm;
 use Drupal\Core\Mail\MailFormatHelper;
 use Drupal\Core\Test\AssertMailTrait;
+use Drupal\field_ui\Tests\FieldUiTestTrait;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Tests\field_ui\Traits\FieldUiTestTrait;
 use Drupal\user\RoleInterface;
 
 /**
@@ -44,27 +44,6 @@ class ContactSitewideTest extends BrowserTestBase {
    * Tests configuration options and the site-wide contact form.
    */
   public function testSiteWideContact() {
-    // Tests name and email fields for authenticated and anonymous users.
-    $this->drupalLogin($this->drupalCreateUser(['access site-wide contact form']));
-    $this->drupalGet('contact');
-
-    // Ensure that there is no textfield for name.
-    $this->assertFalse($this->xpath('//input[@name=:name]', [':name' => 'name']));
-
-    // Ensure that there is no textfield for email.
-    $this->assertFalse($this->xpath('//input[@name=:name]', [':name' => 'mail']));
-
-    // Logout and retrieve the page as an anonymous user
-    $this->drupalLogout();
-    user_role_grant_permissions('anonymous', ['access site-wide contact form']);
-    $this->drupalGet('contact');
-
-    // Ensure that there is textfield for name.
-    $this->assertTrue($this->xpath('//input[@name=:name]', [':name' => 'name']));
-
-    // Ensure that there is textfield for email.
-    $this->assertTrue($this->xpath('//input[@name=:name]', [':name' => 'mail']));
-
     // Create and log in administrative user.
     $admin_user = $this->drupalCreateUser([
       'access site-wide contact form',
@@ -101,7 +80,7 @@ class ContactSitewideTest extends BrowserTestBase {
     // field_ui enabled admin/structure/contact/manage/personal/fields exists.
     // @todo: See https://www.drupal.org/node/2031223 for the above.
     $edit_link = $this->xpath('//a[@href=:href]', [
-      ':href' => Url::fromRoute('entity.contact_form.edit_form', ['contact_form' => 'personal'])->toString(),
+      ':href' => \Drupal::url('entity.contact_form.edit_form', ['contact_form' => 'personal'])
     ]);
     $this->assertTrue(empty($edit_link), format_string('No link containing href %href found.',
       ['%href' => 'admin/structure/contact/manage/personal']
@@ -149,9 +128,9 @@ class ContactSitewideTest extends BrowserTestBase {
     $recipients = ['simpletest&@example.com', 'simpletest2@example.com', 'simpletest3@example.com'];
     $max_length = EntityTypeInterface::BUNDLE_MAX_LENGTH;
     $max_length_exceeded = $max_length + 1;
-    $this->addContactForm($id = mb_strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', [$recipients[0]]), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', [$recipients[0]]), '', TRUE);
     $this->assertText(format_string('Machine-readable name cannot be longer than @max characters but is currently @exceeded characters long.', ['@max' => $max_length, '@exceeded' => $max_length_exceeded]));
-    $this->addContactForm($id = mb_strtolower($this->randomMachineName($max_length)), $label = $this->randomMachineName($max_length), implode(',', [$recipients[0]]), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length)), $label = $this->randomMachineName($max_length), implode(',', [$recipients[0]]), '', TRUE);
     $this->assertText(t('Contact form @label has been added.', ['@label' => $label]));
 
     // Verify that the creation message contains a link to a contact form.
@@ -159,7 +138,7 @@ class ContactSitewideTest extends BrowserTestBase {
     $this->assert(isset($view_link), 'The message area contains a link to a contact form.');
 
     // Create first valid form.
-    $this->addContactForm($id = mb_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0]]), '', TRUE);
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0]]), '', TRUE);
     $this->assertText(t('Contact form @label has been added.', ['@label' => $label]));
 
     // Verify that the creation message contains a link to a contact form.
@@ -202,10 +181,10 @@ class ContactSitewideTest extends BrowserTestBase {
     $this->drupalLogin($admin_user);
 
     // Add more forms.
-    $this->addContactForm(mb_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0], $recipients[1]]), '', FALSE);
+    $this->addContactForm(Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0], $recipients[1]]), '', FALSE);
     $this->assertText(t('Contact form @label has been added.', ['@label' => $label]));
 
-    $this->addContactForm($name = mb_strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0], $recipients[1], $recipients[2]]), '', FALSE);
+    $this->addContactForm($name = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', [$recipients[0], $recipients[1], $recipients[2]]), '', FALSE);
     $this->assertText(t('Contact form @label has been added.', ['@label' => $label]));
 
     // Try adding a form that already exists.
@@ -270,7 +249,7 @@ class ContactSitewideTest extends BrowserTestBase {
 
     $label = $this->randomMachineName(16);
     $recipients = implode(',', [$recipients[0], $recipients[1], $recipients[2]]);
-    $contact_form = mb_strtolower($this->randomMachineName(16));
+    $contact_form = Unicode::strtolower($this->randomMachineName(16));
     $this->addContactForm($contact_form, $label, $recipients, '', FALSE);
     $this->drupalGet('admin/structure/contact');
     $this->clickLink(t('Edit'));
@@ -281,7 +260,7 @@ class ContactSitewideTest extends BrowserTestBase {
     $this->drupalGet('admin/structure/contact');
 
     $view_link = $this->xpath('//table/tbody/tr/td/a[contains(@href, :href) and text()=:text]', [
-      ':href' => Url::fromRoute('entity.contact_form.canonical', ['contact_form' => $contact_form])->toString(),
+      ':href' => \Drupal::url('entity.contact_form.canonical', ['contact_form' => $contact_form]),
       ':text' => $label,
       ]
     );
@@ -300,7 +279,7 @@ class ContactSitewideTest extends BrowserTestBase {
     $this->assertResponse(200);
 
     // Create a simple textfield.
-    $field_name = mb_strtolower($this->randomMachineName());
+    $field_name = Unicode::strtolower($this->randomMachineName());
     $field_label = $this->randomMachineName();
     $this->fieldUIAddNewField(NULL, $field_name, $field_label, 'text');
     $field_name = 'field_' . $field_name;
@@ -406,7 +385,7 @@ class ContactSitewideTest extends BrowserTestBase {
       'administer contact forms',
       'administer permissions',
       'administer users',
-      'access site reports',
+      'access site reports'
     ]);
     $this->drupalLogin($admin_user);
 
@@ -556,7 +535,7 @@ class ContactSitewideTest extends BrowserTestBase {
    * Deletes all forms.
    */
   public function deleteContactForms() {
-    $contact_forms = ContactForm::loadMultiple();
+    $contact_forms = ContactForm::loadMultiple();;
     foreach ($contact_forms as $id => $contact_form) {
       if ($id == 'personal') {
         // Personal form could not be deleted.

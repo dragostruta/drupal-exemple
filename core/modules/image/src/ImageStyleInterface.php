@@ -42,6 +42,7 @@ interface ImageStyleInterface extends ConfigEntityInterface {
    */
   public function setName($name);
 
+
   /**
    * Returns the URI of this image when using this style.
    *
@@ -192,16 +193,5 @@ interface ImageStyleInterface extends ConfigEntityInterface {
    * @return $this
    */
   public function deleteImageEffect(ImageEffectInterface $effect);
-
-  /**
-   * Determines if this style can be applied to a given image.
-   *
-   * @param string $uri
-   *   The URI of the image.
-   *
-   * @return bool
-   *   TRUE if the image is supported, FALSE otherwise.
-   */
-  public function supportsUri($uri);
 
 }

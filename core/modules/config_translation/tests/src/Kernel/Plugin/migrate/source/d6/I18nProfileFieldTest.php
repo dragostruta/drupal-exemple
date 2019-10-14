@@ -9,7 +9,6 @@ use Drupal\Tests\migrate\Kernel\MigrateSqlSourceTestBase;
  *
  * @covers \Drupal\config_translation\Plugin\migrate\source\d6\I18nProfileField
  * @group migrate_drupal
- * @group legacy
  */
 class I18nProfileFieldTest extends MigrateSqlSourceTestBase {
 
@@ -42,8 +41,8 @@ class I18nProfileFieldTest extends MigrateSqlSourceTestBase {
           'lid' => 11,
           'objectid' => 'profile_love_migrations',
           'type' => 'field',
-          'property' => 'explanation',
-        ],
+          'property' => 'explanation'
+        ]
       ],
       'locales_target' => [
         [

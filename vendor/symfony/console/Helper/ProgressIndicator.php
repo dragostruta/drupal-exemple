@@ -48,12 +48,12 @@ class ProgressIndicator
         }
 
         if (null === $indicatorValues) {
-            $indicatorValues = ['-', '\\', '|', '/'];
+            $indicatorValues = array('-', '\\', '|', '/');
         }
 
         $indicatorValues = array_values($indicatorValues);
 
-        if (2 > \count($indicatorValues)) {
+        if (2 > count($indicatorValues)) {
             throw new InvalidArgumentException('Must have at least 2 indicator value characters.');
         }
 
@@ -73,6 +73,42 @@ class ProgressIndicator
         $this->message = $message;
 
         $this->display();
+    }
+
+    /**
+     * Gets the current indicator message.
+     *
+     * @return string|null
+     *
+     * @internal for PHP 5.3 compatibility
+     */
+    public function getMessage()
+    {
+        return $this->message;
+    }
+
+    /**
+     * Gets the progress bar start time.
+     *
+     * @return int The progress bar start time
+     *
+     * @internal for PHP 5.3 compatibility
+     */
+    public function getStartTime()
+    {
+        return $this->startTime;
+    }
+
+    /**
+     * Gets the current animated indicator character.
+     *
+     * @return string
+     *
+     * @internal for PHP 5.3 compatibility
+     */
+    public function getCurrentValue()
+    {
+        return $this->indicatorValues[$this->indicatorCurrent % count($this->indicatorValues)];
     }
 
     /**
@@ -196,7 +232,7 @@ class ProgressIndicator
 
         $this->overwrite(preg_replace_callback("{%([a-z\-_]+)(?:\:([^%]+))?%}i", function ($matches) use ($self) {
             if ($formatter = $self::getPlaceholderFormatterDefinition($matches[1])) {
-                return \call_user_func($formatter, $self);
+                return call_user_func($formatter, $self);
             }
 
             return $matches[0];
@@ -239,25 +275,25 @@ class ProgressIndicator
 
     private static function initPlaceholderFormatters()
     {
-        return [
-            'indicator' => function (self $indicator) {
-                return $indicator->indicatorValues[$indicator->indicatorCurrent % \count($indicator->indicatorValues)];
+        return array(
+            'indicator' => function (ProgressIndicator $indicator) {
+                return $indicator->getCurrentValue();
             },
-            'message' => function (self $indicator) {
-                return $indicator->message;
+            'message' => function (ProgressIndicator $indicator) {
+                return $indicator->getMessage();
             },
-            'elapsed' => function (self $indicator) {
-                return Helper::formatTime(time() - $indicator->startTime);
+            'elapsed' => function (ProgressIndicator $indicator) {
+                return Helper::formatTime(time() - $indicator->getStartTime());
             },
             'memory' => function () {
                 return Helper::formatMemory(memory_get_usage(true));
             },
-        ];
+        );
     }
 
     private static function initFormats()
     {
-        return [
+        return array(
             'normal' => ' %indicator% %message%',
             'normal_no_ansi' => ' %message%',
 
@@ -266,6 +302,6 @@ class ProgressIndicator
 
             'very_verbose' => ' %indicator% %message% (%elapsed:6s%, %memory:6s%)',
             'very_verbose_no_ansi' => ' %message% (%elapsed:6s%, %memory:6s%)',
-        ];
+        );
     }
 }

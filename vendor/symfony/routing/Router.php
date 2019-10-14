@@ -11,19 +11,19 @@
 
 namespace Symfony\Component\Routing;
 
-use Psr\Log\LoggerInterface;
-use Symfony\Component\Config\ConfigCacheFactory;
-use Symfony\Component\Config\ConfigCacheFactoryInterface;
-use Symfony\Component\Config\ConfigCacheInterface;
 use Symfony\Component\Config\Loader\LoaderInterface;
-use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Config\ConfigCacheInterface;
+use Symfony\Component\Config\ConfigCacheFactoryInterface;
+use Symfony\Component\Config\ConfigCacheFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Generator\ConfigurableRequirementsInterface;
-use Symfony\Component\Routing\Generator\Dumper\GeneratorDumperInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Routing\Matcher\Dumper\MatcherDumperInterface;
+use Symfony\Component\Routing\Generator\Dumper\GeneratorDumperInterface;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
 use Symfony\Component\Routing\Matcher\UrlMatcherInterface;
+use Symfony\Component\Routing\Matcher\Dumper\MatcherDumperInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\ExpressionLanguage\ExpressionFunctionProviderInterface;
 
 /**
  * The Router class is an example of the integration of all pieces of the
@@ -66,7 +66,7 @@ class Router implements RouterInterface, RequestMatcherInterface
     /**
      * @var array
      */
-    protected $options = [];
+    protected $options = array();
 
     /**
      * @var LoggerInterface|null
@@ -81,16 +81,18 @@ class Router implements RouterInterface, RequestMatcherInterface
     /**
      * @var ExpressionFunctionProviderInterface[]
      */
-    private $expressionLanguageProviders = [];
+    private $expressionLanguageProviders = array();
 
     /**
+     * Constructor.
+     *
      * @param LoaderInterface $loader   A LoaderInterface instance
      * @param mixed           $resource The main resource to load
      * @param array           $options  An array of options
      * @param RequestContext  $context  The context
      * @param LoggerInterface $logger   A logger instance
      */
-    public function __construct(LoaderInterface $loader, $resource, array $options = [], RequestContext $context = null, LoggerInterface $logger = null)
+    public function __construct(LoaderInterface $loader, $resource, array $options = array(), RequestContext $context = null, LoggerInterface $logger = null)
     {
         $this->loader = $loader;
         $this->resource = $resource;
@@ -124,7 +126,7 @@ class Router implements RouterInterface, RequestMatcherInterface
      */
     public function setOptions(array $options)
     {
-        $this->options = [
+        $this->options = array(
             'cache_dir' => null,
             'debug' => false,
             'generator_class' => 'Symfony\\Component\\Routing\\Generator\\UrlGenerator',
@@ -137,12 +139,12 @@ class Router implements RouterInterface, RequestMatcherInterface
             'matcher_cache_class' => 'ProjectUrlMatcher',
             'resource_type' => null,
             'strict_requirements' => true,
-        ];
+        );
 
         // check option names and live merge, if errors are encountered Exception will be thrown
-        $invalid = [];
+        $invalid = array();
         foreach ($options as $key => $value) {
-            if (\array_key_exists($key, $this->options)) {
+            if (array_key_exists($key, $this->options)) {
                 $this->options[$key] = $value;
             } else {
                 $invalid[] = $key;
@@ -164,7 +166,7 @@ class Router implements RouterInterface, RequestMatcherInterface
      */
     public function setOption($key, $value)
     {
-        if (!\array_key_exists($key, $this->options)) {
+        if (!array_key_exists($key, $this->options)) {
             throw new \InvalidArgumentException(sprintf('The Router does not support the "%s" option.', $key));
         }
 
@@ -182,7 +184,7 @@ class Router implements RouterInterface, RequestMatcherInterface
      */
     public function getOption($key)
     {
-        if (!\array_key_exists($key, $this->options)) {
+        if (!array_key_exists($key, $this->options)) {
             throw new \InvalidArgumentException(sprintf('The Router does not support the "%s" option.', $key));
         }
 
@@ -226,6 +228,8 @@ class Router implements RouterInterface, RequestMatcherInterface
 
     /**
      * Sets the ConfigCache factory to use.
+     *
+     * @param ConfigCacheFactoryInterface $configCacheFactory The factory to use
      */
     public function setConfigCacheFactory(ConfigCacheFactoryInterface $configCacheFactory)
     {
@@ -235,7 +239,7 @@ class Router implements RouterInterface, RequestMatcherInterface
     /**
      * {@inheritdoc}
      */
-    public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
+    public function generate($name, $parameters = array(), $referenceType = self::ABSOLUTE_PATH)
     {
         return $this->getGenerator()->generate($name, $parameters, $referenceType);
     }
@@ -284,29 +288,32 @@ class Router implements RouterInterface, RequestMatcherInterface
             return $this->matcher;
         }
 
-        $cache = $this->getConfigCacheFactory()->cache($this->options['cache_dir'].'/'.$this->options['matcher_cache_class'].'.php',
-            function (ConfigCacheInterface $cache) {
-                $dumper = $this->getMatcherDumperInstance();
+        $class = $this->options['matcher_cache_class'];
+        $baseClass = $this->options['matcher_base_class'];
+        $expressionLanguageProviders = $this->expressionLanguageProviders;
+        $that = $this; // required for PHP 5.3 where "$this" cannot be use()d in anonymous functions. Change in Symfony 3.0.
+
+        $cache = $this->getConfigCacheFactory()->cache($this->options['cache_dir'].'/'.$class.'.php',
+            function (ConfigCacheInterface $cache) use ($that, $class, $baseClass, $expressionLanguageProviders) {
+                $dumper = $that->getMatcherDumperInstance();
                 if (method_exists($dumper, 'addExpressionLanguageProvider')) {
-                    foreach ($this->expressionLanguageProviders as $provider) {
+                    foreach ($expressionLanguageProviders as $provider) {
                         $dumper->addExpressionLanguageProvider($provider);
                     }
                 }
 
-                $options = [
-                    'class' => $this->options['matcher_cache_class'],
-                    'base_class' => $this->options['matcher_base_class'],
-                ];
+                $options = array(
+                    'class' => $class,
+                    'base_class' => $baseClass,
+                );
 
-                $cache->write($dumper->dump($options), $this->getRouteCollection()->getResources());
+                $cache->write($dumper->dump($options), $that->getRouteCollection()->getResources());
             }
         );
 
-        if (!class_exists($this->options['matcher_cache_class'], false)) {
-            require_once $cache->getPath();
-        }
+        require_once $cache->getPath();
 
-        return $this->matcher = new $this->options['matcher_cache_class']($this->context);
+        return $this->matcher = new $class($this->context);
     }
 
     /**
@@ -323,24 +330,25 @@ class Router implements RouterInterface, RequestMatcherInterface
         if (null === $this->options['cache_dir'] || null === $this->options['generator_cache_class']) {
             $this->generator = new $this->options['generator_class']($this->getRouteCollection(), $this->context, $this->logger);
         } else {
-            $cache = $this->getConfigCacheFactory()->cache($this->options['cache_dir'].'/'.$this->options['generator_cache_class'].'.php',
-                function (ConfigCacheInterface $cache) {
-                    $dumper = $this->getGeneratorDumperInstance();
+            $class = $this->options['generator_cache_class'];
+            $baseClass = $this->options['generator_base_class'];
+            $that = $this; // required for PHP 5.3 where "$this" cannot be use()d in anonymous functions. Change in Symfony 3.0.
+            $cache = $this->getConfigCacheFactory()->cache($this->options['cache_dir'].'/'.$class.'.php',
+                function (ConfigCacheInterface $cache) use ($that, $class, $baseClass) {
+                    $dumper = $that->getGeneratorDumperInstance();
 
-                    $options = [
-                        'class' => $this->options['generator_cache_class'],
-                        'base_class' => $this->options['generator_base_class'],
-                    ];
+                    $options = array(
+                        'class' => $class,
+                        'base_class' => $baseClass,
+                    );
 
-                    $cache->write($dumper->dump($options), $this->getRouteCollection()->getResources());
+                    $cache->write($dumper->dump($options), $that->getRouteCollection()->getResources());
                 }
             );
 
-            if (!class_exists($this->options['generator_cache_class'], false)) {
-                require_once $cache->getPath();
-            }
+            require_once $cache->getPath();
 
-            $this->generator = new $this->options['generator_cache_class']($this->context, $this->logger);
+            $this->generator = new $class($this->context, $this->logger);
         }
 
         if ($this->generator instanceof ConfigurableRequirementsInterface) {
@@ -356,17 +364,25 @@ class Router implements RouterInterface, RequestMatcherInterface
     }
 
     /**
+     * This method is public because it needs to be callable from a closure in PHP 5.3. It should be converted back to protected in 3.0.
+     *
+     * @internal
+     *
      * @return GeneratorDumperInterface
      */
-    protected function getGeneratorDumperInstance()
+    public function getGeneratorDumperInstance()
     {
         return new $this->options['generator_dumper_class']($this->getRouteCollection());
     }
 
     /**
+     * This method is public because it needs to be callable from a closure in PHP 5.3. It should be converted back to protected in 3.0.
+     *
+     * @internal
+     *
      * @return MatcherDumperInterface
      */
-    protected function getMatcherDumperInstance()
+    public function getMatcherDumperInstance()
     {
         return new $this->options['matcher_dumper_class']($this->getRouteCollection());
     }
@@ -375,7 +391,7 @@ class Router implements RouterInterface, RequestMatcherInterface
      * Provides the ConfigCache factory implementation, falling back to a
      * default implementation if necessary.
      *
-     * @return ConfigCacheFactoryInterface
+     * @return ConfigCacheFactoryInterface $configCacheFactory
      */
     private function getConfigCacheFactory()
     {

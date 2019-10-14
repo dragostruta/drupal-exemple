@@ -23,7 +23,17 @@ class PoFileDumper extends FileDumper
     /**
      * {@inheritdoc}
      */
-    public function formatCatalogue(MessageCatalogue $messages, $domain, array $options = [])
+    public function format(MessageCatalogue $messages, $domain = 'messages')
+    {
+        @trigger_error('The '.__METHOD__.' method is deprecated since version 2.8 and will be removed in 3.0. Use the formatCatalogue() method instead.', E_USER_DEPRECATED);
+
+        return $this->formatCatalogue($messages, $domain);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function formatCatalogue(MessageCatalogue $messages, $domain, array $options = array())
     {
         $output = 'msgid ""'."\n";
         $output .= 'msgstr ""'."\n";
@@ -40,7 +50,7 @@ class PoFileDumper extends FileDumper
                 $newLine = true;
             }
             $output .= sprintf('msgid "%s"'."\n", $this->escape($source));
-            $output .= sprintf('msgstr "%s"'."\n", $this->escape($target));
+            $output .= sprintf('msgstr "%s"', $this->escape($target));
         }
 
         return $output;

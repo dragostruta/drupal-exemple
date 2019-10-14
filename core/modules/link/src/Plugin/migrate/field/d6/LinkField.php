@@ -10,10 +10,8 @@ use Drupal\migrate_drupal\Plugin\migrate\field\FieldPluginBase;
  *   id = "link",
  *   core = {6},
  *   type_map = {
- *     "link" = "link",
- *   },
- *   source_module = "link",
- *   destination_module = "link"
+ *     "link_field" = "link"
+ *   }
  * )
  */
 class LinkField extends FieldPluginBase {
@@ -23,7 +21,7 @@ class LinkField extends FieldPluginBase {
    */
   public function getFieldFormatterMap() {
     // See d6_field_formatter_settings.yml and FieldPluginBase
-    // alterFieldFormatterMigration().
+    // processFieldFormatter().
     return [
       'default' => 'link',
       'plain' => 'link',
@@ -39,9 +37,9 @@ class LinkField extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function defineValueProcessPipeline(MigrationInterface $migration, $field_name, $data) {
+  public function processFieldValues(MigrationInterface $migration, $field_name, $data) {
     $process = [
-      'plugin' => 'field_link',
+      'plugin' => 'd6_field_link',
       'source' => $field_name,
     ];
     $migration->mergeProcessOfProperty($field_name, $process);

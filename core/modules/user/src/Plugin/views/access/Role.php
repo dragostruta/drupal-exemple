@@ -69,7 +69,7 @@ class Role extends AccessPluginBase implements CacheableDependencyInterface {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    return !empty(array_intersect(array_filter($this->options['role']), $account->getRoles()));
+    return array_intersect(array_filter($this->options['role']), $account->getRoles());
   }
 
   /**
@@ -95,6 +95,7 @@ class Role extends AccessPluginBase implements CacheableDependencyInterface {
       return $rids[$rid];
     }
   }
+
 
   protected function defineOptions() {
     $options = parent::defineOptions();

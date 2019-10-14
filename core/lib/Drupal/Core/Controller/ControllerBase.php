@@ -9,7 +9,6 @@ use Drupal\Core\Routing\RedirectDestinationTrait;
 use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Messenger\MessengerTrait;
 
 /**
  * Utility base class for thin controllers.
@@ -36,7 +35,6 @@ abstract class ControllerBase implements ContainerInjectionInterface {
 
   use LinkGeneratorTrait;
   use LoggerChannelTrait;
-  use MessengerTrait;
   use RedirectDestinationTrait;
   use StringTranslationTrait;
   use UrlGeneratorTrait;
@@ -93,7 +91,7 @@ abstract class ControllerBase implements ContainerInjectionInterface {
   /**
    * The state service.
    *
-   * @var \Drupal\Core\State\StateInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
   protected $stateService;
 
@@ -129,7 +127,6 @@ abstract class ControllerBase implements ContainerInjectionInterface {
    *   instead.
    */
   protected function entityManager() {
-    @trigger_error('ControllerBase::getEntityManager() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use ::getEntityTypeManager() instead. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
     if (!$this->entityManager) {
       $this->entityManager = $this->container()->get('entity.manager');
     }
@@ -223,7 +220,7 @@ abstract class ControllerBase implements ContainerInjectionInterface {
    * needs to be the same across development, production, etc. environments
    * (for example, the system maintenance message) should use config() instead.
    *
-   * @return \Drupal\Core\State\StateInterface
+   * @return \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
   protected function state() {
     if (!$this->stateService) {

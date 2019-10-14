@@ -2,7 +2,6 @@
 
 namespace Drupal\migrate\Plugin\migrate\process;
 
-use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StreamWrapper\LocalStream;
@@ -10,6 +9,7 @@ use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Plugin\MigrateProcessInterface;
+use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\Row;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -19,19 +19,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * The file can be moved, reused, or set to be automatically renamed if a
  * duplicate exists.
  *
- * The source value is an indexed array of two values:
- * - The source path or URI, e.g. '/path/to/foo.txt' or 'public://bar.txt'.
- * - The destination URI, e.g. 'public://foo.txt'.
+ * The source value is an array of two values:
+ * - source: The source path or URI, e.g. '/path/to/foo.txt' or
+ *   'public://bar.txt'.
+ * - destination: The destination path or URI, e.g. '/path/to/bar.txt' or
+ *   'public://foo.txt'.
  *
  * Available configuration keys:
  * - move: (optional) Boolean, if TRUE, move the file, otherwise copy the file.
  *   Defaults to FALSE.
- * - file_exists: (optional) Replace behavior when the destination file already
- *   exists:
- *   - 'replace' - (default) Replace the existing file.
- *   - 'rename' - Append _{incrementing number} until the filename is
- *       unique.
- *   - 'use existing' - Do nothing and return FALSE.
+ * - rename: (optional) Boolean, if TRUE, rename the file by appending a number
+ *   until the name is unique. Defaults to FALSE.
+ * - reuse: (optional) Boolean, if TRUE, reuse the current file in its existing
+ *   location rather than move/copy/rename the file. Defaults to FALSE.
  *
  * Examples:
  *
@@ -39,9 +39,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * process:
  *   path_to_file:
  *     plugin: file_copy
- *     source:
- *       - /path/to/file.png
- *       - public://new/path/to/file.png
+ *     source: /path/to/file.png
+ *     destination: /new/path/to/file.png
  * @endcode
  *
  * @see \Drupal\migrate\Plugin\MigrateProcessInterface
@@ -50,7 +49,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "file_copy"
  * )
  */
-class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterface {
+class FileCopy extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * The stream wrapper manager service.
@@ -92,6 +91,8 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, StreamWrapperManagerInterface $stream_wrappers, FileSystemInterface $file_system, MigrateProcessInterface $download_plugin) {
     $configuration += [
       'move' => FALSE,
+      'rename' => FALSE,
+      'reuse' => FALSE,
     ];
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->streamWrapperManager = $stream_wrappers;
@@ -109,7 +110,7 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
       $plugin_definition,
       $container->get('stream_wrapper_manager'),
       $container->get('file_system'),
-      $container->get('plugin.manager.migrate.process')->createInstance('download', $configuration)
+      $container->get('plugin.manager.migrate.process')->createInstance('download')
     );
   }
 
@@ -142,16 +143,15 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
 
     // Check if a writable directory exists, and if not try to create it.
     $dir = $this->getDirectory($destination);
-    // If the directory exists and is writable, avoid
-    // \Drupal\Core\File\FileSystemInterface::prepareDirectory() call and write
-    // the file to destination.
+    // If the directory exists and is writable, avoid file_prepare_directory()
+    // call and write the file to destination.
     if (!is_dir($dir) || !is_writable($dir)) {
-      if (!$this->fileSystem->prepareDirectory($dir, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+      if (!file_prepare_directory($dir, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
         throw new MigrateException("Could not create or write to directory '$dir'");
       }
     }
 
-    $final_destination = $this->writeFile($source, $destination, $this->configuration['file_exists']);
+    $final_destination = $this->writeFile($source, $destination, $this->getOverwriteMode());
     if ($final_destination) {
       return $final_destination;
     }
@@ -171,24 +171,33 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
    * @return string|bool
    *   File destination on success, FALSE on failure.
    */
-  protected function writeFile($source, $destination, $replace = FileSystemInterface::EXISTS_REPLACE) {
+  protected function writeFile($source, $destination, $replace = FILE_EXISTS_REPLACE) {
     // Check if there is a destination available for copying. If there isn't,
     // it already exists at the destination and the replace flag tells us to not
     // replace it. In that case, return the original destination.
-    if ($this->fileSystem->getDestinationFilename($destination, $replace) === FALSE) {
+    if (!($final_destination = file_destination($destination, $replace))) {
       return $destination;
     }
-    try {
-      if ($this->configuration['move']) {
-        return $this->fileSystem->move($source, $destination, $replace);
-      }
-      else {
-        return $this->fileSystem->copy($source, $destination, $replace);
-      }
+    $function = 'file_unmanaged_' . ($this->configuration['move'] ? 'move' : 'copy');
+    return $function($source, $destination, $replace);
+  }
+
+  /**
+   * Determines how to handle file conflicts.
+   *
+   * @return int
+   *   FILE_EXISTS_REPLACE (default), FILE_EXISTS_RENAME, or FILE_EXISTS_ERROR
+   *   depending on the current configuration.
+   */
+  protected function getOverwriteMode() {
+    if (!empty($this->configuration['rename'])) {
+      return FILE_EXISTS_RENAME;
     }
-    catch (FileException $e) {
-      return FALSE;
+    if (!empty($this->configuration['reuse'])) {
+      return FILE_EXISTS_ERROR;
     }
+
+    return FILE_EXISTS_REPLACE;
   }
 
   /**
@@ -196,8 +205,7 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
    *
    * For URIs like public://foo.txt, the full physical path of public://
    * will be returned, since a scheme by itself will trip up certain file
-   * API functions (such as
-   * \Drupal\Core\File\FileSystemInterface::prepareDirectory()).
+   * API functions (such as file_prepare_directory()).
    *
    * @param string $uri
    *   The URI or path.

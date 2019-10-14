@@ -7,8 +7,6 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form handler for the shortcut set entity edit forms.
- *
- * @internal
  */
 class ShortcutSetForm extends BundleEntityFormBase {
 
@@ -53,12 +51,12 @@ class ShortcutSetForm extends BundleEntityFormBase {
     $entity->save();
 
     if ($is_new) {
-      $this->messenger()->addStatus($this->t('The %set_name shortcut set has been created. You can edit it from this page.', ['%set_name' => $entity->label()]));
+      drupal_set_message(t('The %set_name shortcut set has been created. You can edit it from this page.', ['%set_name' => $entity->label()]));
     }
     else {
-      $this->messenger()->addStatus($this->t('Updated set name to %set-name.', ['%set-name' => $entity->label()]));
+      drupal_set_message(t('Updated set name to %set-name.', ['%set-name' => $entity->label()]));
     }
-    $form_state->setRedirectUrl($this->entity->toUrl('customize-form'));
+    $form_state->setRedirectUrl($this->entity->urlInfo('customize-form'));
   }
 
 }

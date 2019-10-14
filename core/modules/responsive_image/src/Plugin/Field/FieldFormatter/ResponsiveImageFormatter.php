@@ -9,7 +9,6 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Url;
-use Drupal\file\FileInterface;
 use Drupal\image\Plugin\Field\FieldFormatter\ImageFormatterBase;
 use Drupal\responsive_image\Entity\ResponsiveImageStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,7 +32,7 @@ use Drupal\Core\Utility\LinkGeneratorInterface;
 class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFactoryPluginInterface {
 
   /**
-   * @var \Drupal\Core\Entity\EntityStorageInterface
+   * @var EntityStorageInterface
    */
   protected $responsiveImageStyleStorage;
 
@@ -139,7 +138,7 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
     $elements['responsive_image_style'] = [
       '#title' => t('Responsive image style'),
       '#type' => 'select',
-      '#default_value' => $this->getSetting('responsive_image_style') ?: NULL,
+      '#default_value' => $this->getSetting('responsive_image_style'),
       '#required' => TRUE,
       '#options' => $responsive_image_options,
       '#description' => [
@@ -206,7 +205,7 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
     if ($this->getSetting('image_link') == 'content') {
       $entity = $items->getEntity();
       if (!$entity->isNew()) {
-        $url = $entity->toUrl();
+        $url = $entity->urlInfo();
       }
     }
     elseif ($this->getSetting('image_link') == 'file') {
@@ -228,10 +227,9 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
     }
 
     foreach ($files as $delta => $file) {
-      assert($file instanceof FileInterface);
       // Link the <picture> element to the original file.
       if (isset($link_file)) {
-        $url = $file->createFileUrl();
+        $url = file_url_transform_relative(file_create_url($file->getFileUri()));
       }
       // Extract field item attributes for the theme function, and unset them
       // from the $item so that the field template does not re-render them.

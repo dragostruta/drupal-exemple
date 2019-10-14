@@ -7,23 +7,21 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\content_moderation\ModerationInformation;
-use Drupal\Tests\UnitTestCase;
 use Drupal\workflows\WorkflowInterface;
 
 /**
  * @coversDefaultClass \Drupal\content_moderation\ModerationInformation
  * @group content_moderation
  */
-class ModerationInformationTest extends UnitTestCase {
+class ModerationInformationTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Builds a mock user.
    *
-   * @return \Drupal\Core\Session\AccountInterface
+   * @return AccountInterface
    *   The mocked user.
    */
   protected function getUser() {
@@ -33,7 +31,7 @@ class ModerationInformationTest extends UnitTestCase {
   /**
    * Returns a mock Entity Type Manager.
    *
-   * @return \Drupal\Core\Entity\EntityTypeManagerInterface
+   * @return EntityTypeManagerInterface
    *   The mocked entity type manager.
    */
   protected function getEntityTypeManager() {
@@ -59,25 +57,8 @@ class ModerationInformationTest extends UnitTestCase {
     }
     $bundle_info = $this->prophesize(EntityTypeBundleInfoInterface::class);
     $bundle_info->getBundleInfo("test_entity_type")->willReturn([$bundle => $bundle_info_array]);
-    $bundle_info->getBundleInfo("unmoderated_test_type")->willReturn([$bundle => []]);
 
     return $bundle_info->reveal();
-  }
-
-  /**
-   * @covers ::isModeratedEntityType
-   */
-  public function testIsModeratedEntityType() {
-    $moderation_information = new ModerationInformation($this->getEntityTypeManager(), $this->setupModerationBundleInfo('test_bundle', 'workflow'));
-
-    $moderated_entity_type = $this->prophesize(EntityTypeInterface::class);
-    $moderated_entity_type->id()->willReturn('test_entity_type');
-
-    $unmoderated_entity_type = $this->prophesize(EntityTypeInterface::class);
-    $unmoderated_entity_type->id()->willReturn('unmoderated_test_type');
-
-    $this->assertTrue($moderation_information->isModeratedEntityType($moderated_entity_type->reveal()));
-    $this->assertFalse($moderation_information->isModeratedEntityType($unmoderated_entity_type->reveal()));
   }
 
   /**

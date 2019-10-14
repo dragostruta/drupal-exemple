@@ -6,7 +6,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityConstraintViolationListInterface;
-use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -31,8 +31,8 @@ abstract class AccountForm extends ContentEntityForm {
   /**
    * Constructs a new EntityForm object.
    *
-   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
-   *   The entity repository.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
@@ -40,8 +40,8 @@ abstract class AccountForm extends ContentEntityForm {
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    */
-  public function __construct(EntityRepositoryInterface $entity_repository, LanguageManagerInterface $language_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL) {
-    parent::__construct($entity_repository, $entity_type_bundle_info, $time);
+  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL) {
+    parent::__construct($entity_manager, $entity_type_bundle_info, $time);
     $this->languageManager = $language_manager;
   }
 
@@ -50,7 +50,7 @@ abstract class AccountForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.repository'),
+      $container->get('entity.manager'),
       $container->get('language_manager'),
       $container->get('entity_type.bundle.info'),
       $container->get('datetime.time')
@@ -68,19 +68,8 @@ abstract class AccountForm extends ContentEntityForm {
     $form['#cache']['tags'] = $config->getCacheTags();
 
     $language_interface = \Drupal::languageManager()->getCurrentLanguage();
-
-    // Check for new account.
     $register = $account->isAnonymous();
-
-    // For a new account, there are 2 sub-cases:
-    // $self_register: A user creates their own, new, account
-    //   (path '/user/register')
-    // $admin_create: An administrator creates a new account for another user
-    //   (path '/admin/people/create')
-    // If the current user is logged in and has permission to create users
-    // then it must be the second case.
-    $admin_create = $register && $account->access('create');
-    $self_register = $register && !$admin_create;
+    $admin = $user->hasPermission('administer users');
 
     // Account information.
     $form['account'] = [
@@ -104,7 +93,7 @@ abstract class AccountForm extends ContentEntityForm {
     $form['account']['name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Username'),
-      '#maxlength' => UserInterface::USERNAME_MAX_LENGTH,
+      '#maxlength' => USERNAME_MAX_LENGTH,
       '#description' => $this->t("Several special characters are allowed, including space, period (.), hyphen (-), apostrophe ('), underscore (_), and the @ sign."),
       '#required' => TRUE,
       '#attributes' => [
@@ -114,7 +103,7 @@ abstract class AccountForm extends ContentEntityForm {
         'spellcheck' => 'false',
       ],
       '#default_value' => (!$register ? $account->getAccountName() : ''),
-      '#access' => $account->name->access('edit'),
+      '#access' => ($register || ($user->id() == $account->id() && $user->hasPermission('change own username')) || $admin),
     ];
 
     // Display password field only for existing users or when user is allowed to
@@ -161,7 +150,7 @@ abstract class AccountForm extends ContentEntityForm {
         }
       }
     }
-    elseif (!$config->get('verify_mail') || $admin_create) {
+    elseif (!$config->get('verify_mail') || $admin) {
       $form['account']['pass'] = [
         '#type' => 'password_confirm',
         '#size' => 25,
@@ -172,7 +161,7 @@ abstract class AccountForm extends ContentEntityForm {
 
     // When not building the user registration form, prevent web browsers from
     // autofilling/prefilling the email, username, and password fields.
-    if (!$register) {
+    if ($this->getOperation() != 'register') {
       foreach (['mail', 'name', 'pass'] as $key) {
         if (isset($form['account'][$key])) {
           $form['account'][$key]['#attributes']['autocomplete'] = 'off';
@@ -180,11 +169,11 @@ abstract class AccountForm extends ContentEntityForm {
       }
     }
 
-    if (!$self_register) {
+    if ($admin || !$register) {
       $status = $account->get('status')->value;
     }
     else {
-      $status = $config->get('register') == UserInterface::REGISTER_VISITORS ? 1 : 0;
+      $status = $config->get('register') == USER_REGISTER_VISITORS ? 1 : 0;
     }
 
     $form['account']['status'] = [
@@ -192,7 +181,7 @@ abstract class AccountForm extends ContentEntityForm {
       '#title' => $this->t('Status'),
       '#default_value' => $status,
       '#options' => [$this->t('Blocked'), $this->t('Active')],
-      '#access' => $account->status->access('edit'),
+      '#access' => $admin,
     ];
 
     $roles = array_map(['\Drupal\Component\Utility\Html', 'escape'], user_role_names(TRUE));
@@ -214,7 +203,7 @@ abstract class AccountForm extends ContentEntityForm {
     $form['account']['notify'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Notify user of new account'),
-      '#access' => $admin_create,
+      '#access' => $register && $admin,
     ];
 
     $user_preferred_langcode = $register ? $language_interface->getId() : $account->getPreferredLangcode();
@@ -233,7 +222,7 @@ abstract class AccountForm extends ContentEntityForm {
       '#open' => TRUE,
       // Display language selector when either creating a user on the admin
       // interface or editing a user account.
-      '#access' => !$self_register,
+      '#access' => !$register || $user->hasPermission('administer users'),
     ];
 
     $form['language']['preferred_langcode'] = [
@@ -358,7 +347,7 @@ abstract class AccountForm extends ContentEntityForm {
       'timezone',
       'langcode',
       'preferred_langcode',
-      'preferred_admin_langcode',
+      'preferred_admin_langcode'
     ], parent::getEditedFieldNames($form_state));
   }
 
@@ -376,7 +365,7 @@ abstract class AccountForm extends ContentEntityForm {
       'timezone',
       'langcode',
       'preferred_langcode',
-      'preferred_admin_langcode',
+      'preferred_admin_langcode'
     ];
     foreach ($violations->getByFields($field_names) as $violation) {
       list($field_name) = explode('.', $violation->getPropertyPath(), 2);

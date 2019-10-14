@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\content_translation\Functional;
 
-use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -139,7 +138,7 @@ abstract class ContentTranslationTestBase extends BrowserTestBase {
    * Returns an array of permissions needed for the administrator.
    */
   protected function getAdministratorPermissions() {
-    return array_merge($this->getEditorPermissions(), $this->getTranslatorPermissions(), ['administer languages', 'administer content translation']);
+    return array_merge($this->getEditorPermissions(), $this->getTranslatorPermissions(), ['administer content translation']);
   }
 
   /**
@@ -168,8 +167,10 @@ abstract class ContentTranslationTestBase extends BrowserTestBase {
     // Enable translation for the current entity type and ensure the change is
     // picked up.
     \Drupal::service('content_translation.manager')->setEnabled($this->entityTypeId, $this->bundle, TRUE);
-
+    drupal_static_reset();
+    \Drupal::entityManager()->clearCachedDefinitions();
     \Drupal::service('router.builder')->rebuild();
+    \Drupal::service('entity.definition_update_manager')->applyUpdates();
   }
 
   /**
@@ -233,26 +234,6 @@ abstract class ContentTranslationTestBase extends BrowserTestBase {
       ->create($entity_values);
     $entity->save();
     return $entity->id();
-  }
-
-  /**
-   * Returns the edit URL for the specified entity.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   The entity being edited.
-   *
-   * @return \Drupal\Core\Url
-   *   The edit URL.
-   */
-  protected function getEditUrl(ContentEntityInterface $entity) {
-    if ($entity->access('update', $this->loggedInUser)) {
-      $url = $entity->toUrl('edit-form');
-    }
-    else {
-      $url = $entity->toUrl('drupal:content-translation-edit');
-      $url->setRouteParameter('language', $entity->language()->getId());
-    }
-    return $url;
   }
 
 }

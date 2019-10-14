@@ -8,7 +8,6 @@ use Drupal\simpletest\WebTestBase;
  * Tests a test case with missing requirements.
  *
  * @group simpletest
- * @group WebTestBase
  */
 class MissingCheckedRequirementsTest extends WebTestBase {
 
@@ -31,7 +30,7 @@ class MissingCheckedRequirementsTest extends WebTestBase {
   protected function checkRequirements() {
     if ($this->isInChildSite()) {
       return [
-        'Test is not allowed to run.',
+        'Test is not allowed to run.'
       ];
     }
     return parent::checkRequirements();

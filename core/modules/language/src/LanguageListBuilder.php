@@ -9,7 +9,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Messenger\MessengerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -39,22 +38,14 @@ class LanguageListBuilder extends DraggableListBuilder {
   protected $configFactory;
 
   /**
-   * The messenger.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
-   */
-  protected $messenger;
-
-  /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity_type.manager')->getStorage($entity_type->id()),
+      $container->get('entity.manager')->getStorage($entity_type->id()),
       $container->get('language_manager'),
-      $container->get('config.factory'),
-      $container->get('messenger')
+      $container->get('config.factory')
     );
   }
 
@@ -69,14 +60,11 @@ class LanguageListBuilder extends DraggableListBuilder {
    *   The language manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
-   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
-   *   The messenger.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, MessengerInterface $messenger) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory) {
     parent::__construct($entity_type, $storage);
     $this->languageManager = $language_manager;
     $this->configFactory = $config_factory;
-    $this->messenger = $messenger;
   }
 
   /**
@@ -166,10 +154,10 @@ class LanguageListBuilder extends DraggableListBuilder {
       $this->languageManager->updateLockedLanguageWeights();
     }
 
-    $this->messenger->addStatus($this->t('Configuration saved.'));
+    drupal_set_message(t('Configuration saved.'));
     // Force the redirection to the page with the language we have just
     // selected as default.
-    $form_state->setRedirectUrl($this->entities[$new_id]->toUrl('collection', ['language' => $this->entities[$new_id]]));
+    $form_state->setRedirectUrl($this->entities[$new_id]->urlInfo('collection', ['language' => $this->entities[$new_id]]));
   }
 
 }

@@ -3,15 +3,15 @@
 namespace Drupal\Tests\Component\Render;
 
 use Drupal\Component\Render\PlainTextOutput;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Render\MarkupInterface;
-use PHPUnit\Framework\TestCase;
+use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Component\Render\PlainTextOutput
  * @group Utility
  */
-class PlainTextOutputTest extends TestCase {
+class PlainTextOutputTest extends UnitTestCase {
 
   /**
    * Tests ::renderFromHtml().
@@ -28,7 +28,7 @@ class PlainTextOutputTest extends TestCase {
    * @dataProvider providerRenderFromHtml
    */
   public function testRenderFromHtml($expected, $string, $args = []) {
-    $markup = new FormattableMarkup($string, $args);
+    $markup = SafeMarkup::format($string, $args);
     $output = PlainTextOutput::renderFromHtml($markup);
     $this->assertSame($expected, $output);
   }

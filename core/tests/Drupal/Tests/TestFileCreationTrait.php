@@ -71,7 +71,7 @@ trait TestFileCreationTrait {
       $original = drupal_get_path('module', 'simpletest') . '/files';
       $files = file_scan_directory($original, '/(html|image|javascript|php|sql)-.*/');
       foreach ($files as $file) {
-        \Drupal::service('file_system')->copy($file->uri, PublicStream::basePath());
+        file_unmanaged_copy($file->uri, PublicStream::basePath());
       }
 
       $this->generatedTestFiles = TRUE;
@@ -164,8 +164,7 @@ trait TestFileCreationTrait {
     }
 
     // Create filename.
-    $filename = 'public://' . $filename . '.txt';
-    file_put_contents($filename, $text);
+    file_put_contents('public://' . $filename . '.txt', $text);
     return $filename;
   }
 

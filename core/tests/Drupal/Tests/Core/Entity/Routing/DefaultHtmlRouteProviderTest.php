@@ -136,7 +136,8 @@ class DefaultHtmlRouteProviderTest extends UnitTestCase {
         'entity_type_id' => 'the_entity_type_id',
         '_title_callback' => 'Drupal\Core\Entity\Controller\EntityController::addTitle',
       ])
-      ->setRequirement('_entity_create_access', 'the_entity_type_id');
+      ->setRequirement('_entity_create_access', 'the_entity_type_id')
+    ;
     $data['no_add_form_no_bundle'] = [clone $route, $entity_type2->reveal()];
 
     $entity_type3 = $this->getEntityType($entity_type2);
@@ -164,11 +165,9 @@ class DefaultHtmlRouteProviderTest extends UnitTestCase {
     $route
       ->setDefault('bundle_parameter', 'the_bundle_entity_type_id')
       ->setRequirement('_entity_create_access', 'the_entity_type_id:{the_bundle_entity_type_id}')
-      ->setOption('parameters', [
-        'the_bundle_entity_type_id' => [
-          'type' => 'entity:the_bundle_entity_type_id',
-        ],
-      ]);
+      ->setOption('parameters', ['the_bundle_entity_type_id' => [
+        'type' => 'entity:the_bundle_entity_type_id',
+      ]]);
     $data['add_form_bundle_entity_id_key_type_null'] = [clone $route, $entity_type5->reveal(), $bundle_entity_type->reveal()];
 
     $entity_type6 = $this->getEntityType($entity_type5);
@@ -186,12 +185,10 @@ class DefaultHtmlRouteProviderTest extends UnitTestCase {
     $route
       // Unset the 'the_entity_type_id' requirement.
       ->setRequirements(['_entity_create_access' => $route->getRequirement('_entity_create_access')])
-      ->setOption('parameters', [
-        'the_bundle_entity_type_id' => [
-          'type' => 'entity:the_bundle_entity_type_id',
-          'with_config_overrides' => TRUE,
-        ],
-      ]);
+      ->setOption('parameters', ['the_bundle_entity_type_id' => [
+      'type' => 'entity:the_bundle_entity_type_id',
+      'with_config_overrides' => TRUE,
+    ]]);
     $data['add_form_bundle_entity_id_key_type_integer'] = [clone $route, $entity_type7->reveal(), $bundle_entity_type->reveal(), $field_storage_definition->reveal()];
 
     return $data;
@@ -218,7 +215,7 @@ class DefaultHtmlRouteProviderTest extends UnitTestCase {
     $entity_type1->hasLinkTemplate('canonical')->willReturn(FALSE);
     $data['no_canonical_link_template'] = [NULL, $entity_type1->reveal()];
 
-    $entity_type2 = $this->getEntityType();
+    $entity_type2 = $this->getEntityType();;
     $entity_type2->hasLinkTemplate('canonical')->willReturn(TRUE);
     $entity_type2->hasViewBuilderClass()->willReturn(FALSE);
     $data['no_view_builder'] = [NULL, $entity_type2->reveal()];
@@ -356,19 +353,15 @@ class TestDefaultHtmlRouteProvider extends DefaultHtmlRouteProvider {
   public function getEntityTypeIdKeyType(EntityTypeInterface $entity_type) {
     return parent::getEntityTypeIdKeyType($entity_type);
   }
-
   public function getAddPageRoute(EntityTypeInterface $entity_type) {
     return parent::getAddPageRoute($entity_type);
   }
-
   public function getAddFormRoute(EntityTypeInterface $entity_type) {
     return parent::getAddFormRoute($entity_type);
   }
-
   public function getCanonicalRoute(EntityTypeInterface $entity_type) {
     return parent::getCanonicalRoute($entity_type);
   }
-
   public function getCollectionRoute(EntityTypeInterface $entity_type) {
     return parent::getCollectionRoute($entity_type);
   }

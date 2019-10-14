@@ -13,10 +13,9 @@ type: theme
 description: 'Theme for testing the theme system'
 # version: VERSION
 base theme: classy
-core: 8.x
-logo: images/logo2.svg
+# core: 8.x
 stylesheets-remove:
-  - '@stable/css/system/components/js.module.css'
+  - '@system/css/js.module.css'
 libraries:
   - test_theme/global-styling
 libraries-override:
@@ -67,7 +66,8 @@ regions:
   left: Left
   right: Right
 
-# Information added by Drupal.org packaging script on 2019-10-02
-version: '8.7.8'
+# Information added by Drupal.org packaging script on 2017-07-05
+version: '8.3.5'
+core: '8.x'
 project: 'drupal'
-datestamp: 1570044520
+datestamp: 1499274885

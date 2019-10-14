@@ -2,7 +2,6 @@
 
 namespace Drupal\KernelTests\Core\Database;
 
-use Drupal\Core\Database\Database;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -15,19 +14,10 @@ abstract class DatabaseTestBase extends KernelTestBase {
 
   public static $modules = ['database_test'];
 
-  /**
-   * The database connection for testing.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected $connection;
-
   protected function setUp() {
     parent::setUp();
-    $this->connection = Database::getConnection();
     $this->installSchema('database_test', [
       'test',
-      'test_classtype',
       'test_people',
       'test_people_copy',
       'test_one_blob',
@@ -45,7 +35,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
    * Sets up tables for NULL handling.
    */
   public function ensureSampleDataNull() {
-    $this->connection->insert('test_null')
+    db_insert('test_null')
       ->fields(['name', 'age'])
       ->values([
       'name' => 'Kermit',
@@ -66,10 +56,8 @@ abstract class DatabaseTestBase extends KernelTestBase {
    * Sets up our sample data.
    */
   public static function addSampleData() {
-    $connection = Database::getConnection();
-
     // We need the IDs, so we can't use a multi-insert here.
-    $john = $connection->insert('test')
+    $john = db_insert('test')
       ->fields([
         'name' => 'John',
         'age' => 25,
@@ -77,7 +65,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $george = $connection->insert('test')
+    $george = db_insert('test')
       ->fields([
         'name' => 'George',
         'age' => 27,
@@ -85,7 +73,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $connection->insert('test')
+    db_insert('test')
       ->fields([
         'name' => 'Ringo',
         'age' => 28,
@@ -93,7 +81,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $paul = $connection->insert('test')
+    $paul = db_insert('test')
       ->fields([
         'name' => 'Paul',
         'age' => 26,
@@ -101,16 +89,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $connection->insert('test_classtype')
-      ->fields([
-        'classname' => 'Drupal\Tests\system\Functional\Database\FakeRecord',
-        'name' => 'Kay',
-        'age' => 26,
-        'job' => 'Web Developer',
-      ])
-      ->execute();
-
-    $connection->insert('test_people')
+    db_insert('test_people')
       ->fields([
         'name' => 'Meredith',
         'age' => 30,
@@ -118,7 +97,7 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $connection->insert('test_task')
+    db_insert('test_task')
       ->fields(['pid', 'task', 'priority'])
       ->values([
         'pid' => $john,
@@ -157,11 +136,10 @@ abstract class DatabaseTestBase extends KernelTestBase {
       ])
       ->execute();
 
-    $connection->insert('test_special_columns')
+    db_insert('test_special_columns')
       ->fields([
         'id' => 1,
         'offset' => 'Offset value 1',
-        'function' => 'Function value 1',
       ])
       ->execute();
   }

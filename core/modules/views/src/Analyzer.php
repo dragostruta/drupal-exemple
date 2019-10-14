@@ -31,6 +31,7 @@ class Analyzer {
     $this->moduleHandler = $module_handler;
   }
 
+
   /**
    * Analyzes a review and return the results.
    *
@@ -51,8 +52,7 @@ class Analyzer {
   /**
    * Formats the analyze result into a message string.
    *
-   * This is based upon the format of
-   * \Drupal\Core\Messenger\MessengerInterface::addMessage() which uses separate
+   * This is based upon the format of drupal_set_message which uses separate
    * boxes for "ok", "warning" and "error".
    */
   public function formatMessages(array $messages) {
@@ -77,7 +77,7 @@ class Analyzer {
           '#theme' => 'item_list',
           '#items' => $messages,
         ];
-        $message = \Drupal::service('renderer')->render($item_list);
+        $message = drupal_render($item_list);
       }
       elseif ($messages) {
         $message = array_shift($messages);

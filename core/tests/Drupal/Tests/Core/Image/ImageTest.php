@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\Core\Image;
 
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Image\Image;
 use Drupal\Core\ImageToolkit\ImageToolkitInterface;
 use Drupal\Tests\UnitTestCase;
@@ -73,7 +72,7 @@ class ImageTest extends UnitTestCase {
    *
    * @param string $class_name
    *   The name of the GD toolkit operation class to be mocked.
-   * @param \Drupal\Core\Image\ImageToolkitInterface $toolkit
+   * @param ImageToolkitInterface $toolkit
    *   The image toolkit object.
    *
    * @return \PHPUnit_Framework_MockObject_MockObject
@@ -211,19 +210,9 @@ class ImageTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $image = $this->getMock('Drupal\Core\Image\Image', ['chmod'], [$toolkit, $this->image->getSource()]);
-
-    $file_system = $this->prophesize(FileSystemInterface::class);
-    $file_system->chmod($this->image->getSource())
-      ->willReturn(TRUE);
-
-    $container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
-      ->setMethods(['get'])
-      ->getMock();
-    $container->expects($this->once())
-      ->method('get')
-      ->with('file_system')
-      ->willReturn($file_system->reveal());
-    \Drupal::setContainer($container);
+    $image->expects($this->any())
+      ->method('chmod')
+      ->will($this->returnValue(TRUE));
 
     $image->save();
   }
@@ -253,19 +242,9 @@ class ImageTest extends UnitTestCase {
       ->will($this->returnValue(TRUE));
 
     $image = $this->getMock('Drupal\Core\Image\Image', ['chmod'], [$toolkit, $this->image->getSource()]);
-
-    $file_system = $this->prophesize(FileSystemInterface::class);
-    $file_system->chmod($this->image->getSource())
-      ->willReturn(FALSE);
-
-    $container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
-      ->setMethods(['get'])
-      ->getMock();
-    $container->expects($this->once())
-      ->method('get')
-      ->with('file_system')
-      ->willReturn($file_system->reveal());
-    \Drupal::setContainer($container);
+    $image->expects($this->any())
+      ->method('chmod')
+      ->will($this->returnValue(FALSE));
 
     $this->assertFalse($image->save());
   }

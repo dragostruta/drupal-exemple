@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\comment\Kernel\Views;
 
+use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
@@ -18,13 +19,6 @@ use Drupal\views\Views;
 class CommentLinksTest extends CommentViewsKernelTestBase {
 
   /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = ['entity_test'];
-
-  /**
    * Views used by this test.
    *
    * @var array
@@ -32,27 +26,14 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
   public static $testViews = ['test_comment'];
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp($import_test_views = TRUE) {
-    parent::setUp($import_test_views);
-
-    $this->installEntitySchema('entity_test');
-  }
-
-  /**
    * Test the comment approve link.
    */
   public function testLinkApprove() {
-    $host = EntityTest::create(['name' => $this->randomString()]);
-    $host->save();
 
     // Create an unapproved comment.
     $comment = $this->commentStorage->create([
       'uid' => $this->adminUser->id(),
       'entity_type' => 'entity_test',
-      'field_name' => 'comment',
-      'entity_id' => $host->id(),
       'comment_type' => 'entity_test',
       'status' => 0,
     ]);
@@ -84,7 +65,7 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
     $this->assertEqual(\Drupal::l('Approve', $url), (string) $approve_comment, 'Found a comment approve link for an unapproved comment.');
 
     // Approve the comment.
-    $comment->setPublished();
+    $comment->setPublished(CommentInterface::PUBLISHED);
     $comment->save();
     $view = Views::getView('test_comment');
     $view->preview();
@@ -97,7 +78,7 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
     // anonymous user.
     $account_switcher->switchTo(new AnonymousUserSession());
     // Set the comment as unpublished again.
-    $comment->setUnpublished();
+    $comment->setPublished(CommentInterface::NOT_PUBLISHED);
     $comment->save();
 
     $view = Views::getView('test_comment');
@@ -110,7 +91,8 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
    * Test the comment reply link.
    */
   public function testLinkReply() {
-    $this->enableModules(['field']);
+    $this->enableModules(['field', 'entity_test']);
+    $this->installEntitySchema('entity_test');
     $this->installSchema('comment', ['comment_entity_statistics']);
     $this->installConfig(['field']);
 
@@ -168,7 +150,7 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
     $this->assertFalse((string) $replyto_comment, "I can't reply to an unapproved comment.");
 
     // Approve the comment.
-    $comment->setPublished();
+    $comment->setPublished(CommentInterface::PUBLISHED);
     $comment->save();
     $view = Views::getView('test_comment');
     $view->preview();

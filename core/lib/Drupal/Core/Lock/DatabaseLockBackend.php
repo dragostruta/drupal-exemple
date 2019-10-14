@@ -2,10 +2,9 @@
 
 namespace Drupal\Core\Lock;
 
-use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\DatabaseException;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
+use Drupal\Core\Database\SchemaObjectExistsException;
 
 /**
  * Defines the database lock backend. This is the default backend in Drupal.
@@ -43,8 +42,6 @@ class DatabaseLockBackend extends LockBackendAbstract {
    * {@inheritdoc}
    */
   public function acquire($name, $timeout = 30.0) {
-    $name = $this->normalizeName($name);
-
     // Insure that the timeout is at least 1 ms.
     $timeout = max($timeout, 0.001);
     $expire = microtime(TRUE) + $timeout;
@@ -109,8 +106,6 @@ class DatabaseLockBackend extends LockBackendAbstract {
    * {@inheritdoc}
    */
   public function lockMayBeAvailable($name) {
-    $name = $this->normalizeName($name);
-
     try {
       $lock = $this->database->query('SELECT expire, value FROM {semaphore} WHERE name = :name', [':name' => $name])->fetchAssoc();
     }
@@ -141,8 +136,6 @@ class DatabaseLockBackend extends LockBackendAbstract {
    * {@inheritdoc}
    */
   public function release($name) {
-    $name = $this->normalizeName($name);
-
     unset($this->locks[$name]);
     try {
       $this->database->delete('semaphore')
@@ -186,7 +179,7 @@ class DatabaseLockBackend extends LockBackendAbstract {
     // If another process has already created the semaphore table, attempting to
     // recreate it will throw an exception. In this case just catch the
     // exception and do nothing.
-    catch (DatabaseException $e) {
+    catch (SchemaObjectExistsException $e) {
       return TRUE;
     }
     return FALSE;
@@ -211,36 +204,7 @@ class DatabaseLockBackend extends LockBackendAbstract {
   }
 
   /**
-   * Normalizes a lock name in order to comply with database limitations.
-   *
-   * @param string $name
-   *   The passed in lock name.
-   *
-   * @return string
-   *   An ASCII-encoded lock name that is at most 255 characters long.
-   */
-  protected function normalizeName($name) {
-    // Nothing to do if the name is a US ASCII string of 255 characters or less.
-    $name_is_ascii = mb_check_encoding($name, 'ASCII');
-
-    if (strlen($name) <= 255 && $name_is_ascii) {
-      return $name;
-    }
-    // Return a string that uses as much as possible of the original name with
-    // the hash appended.
-    $hash = Crypt::hashBase64($name);
-
-    if (!$name_is_ascii) {
-      return $hash;
-    }
-
-    return substr($name, 0, 255 - strlen($hash)) . $hash;
-  }
-
-  /**
    * Defines the schema for the semaphore table.
-   *
-   * @internal
    */
   public function schemaDefinition() {
     return [
@@ -251,20 +215,20 @@ class DatabaseLockBackend extends LockBackendAbstract {
           'type' => 'varchar_ascii',
           'length' => 255,
           'not null' => TRUE,
-          'default' => '',
+          'default' => ''
         ],
         'value' => [
           'description' => 'A value for the semaphore.',
           'type' => 'varchar_ascii',
           'length' => 255,
           'not null' => TRUE,
-          'default' => '',
+          'default' => ''
         ],
         'expire' => [
           'description' => 'A Unix timestamp with microseconds indicating when the semaphore should expire.',
           'type' => 'float',
           'size' => 'big',
-          'not null' => TRUE,
+          'not null' => TRUE
         ],
       ],
       'indexes' => [

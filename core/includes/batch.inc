@@ -42,27 +42,13 @@ function _batch_page(Request $request) {
   if (!$batch) {
     $batch = \Drupal::service('batch.storage')->load($request_id);
     if (!$batch) {
-      \Drupal::messenger()->addError(t('No active batch.'));
-      return new RedirectResponse(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString());
+      drupal_set_message(t('No active batch.'), 'error');
+      return new RedirectResponse(\Drupal::url('<front>', [], ['absolute' => TRUE]));
     }
   }
 
-  // We need to store the updated batch information in the batch storage after
-  // processing the batch. In order for the error page to work correctly this
-  // needs to be done even in case of a PHP fatal error in which case the end of
-  // this function is never reached. Therefore we register a shutdown function
-  // to handle this case. Because with FastCGI and fastcgi_finish_request()
-  // shutdown functions are called after the HTTP connection is closed, updating
-  // the batch information in a shutdown function would lead to race conditions
-  // between consecutive requests if the batch processing continues. In case of
-  // a fatal error the processing stops anyway, so it works even with FastCGI.
-  // However, we must ensure to only update in the shutdown phase in this
-  // particular case we track whether the batch information still needs to be
-  // updated.
-  // @see _batch_shutdown()
-  // @see \Symfony\Component\HttpFoundation\Response::send()
+  // Register database update for the end of processing.
   drupal_register_shutdown_function('_batch_shutdown');
-  _batch_needs_update(TRUE);
 
   $build = [];
 
@@ -84,46 +70,18 @@ function _batch_page(Request $request) {
       $current_set = _batch_current_set();
       $build['#title'] = $current_set['title'];
       $build['content'] = _batch_progress_page();
-
-      $response = $build;
       break;
 
     case 'do':
       // JavaScript-based progress page callback.
-      $response = _batch_do();
-      break;
+      return _batch_do();
 
     case 'finished':
       // _batch_finished() returns a RedirectResponse.
-      $response = _batch_finished();
-      break;
+      return _batch_finished();
   }
 
-  if ($batch) {
-    \Drupal::service('batch.storage')->update($batch);
-  }
-  _batch_needs_update(FALSE);
-
-  return $response;
-}
-
-/**
- * Checks whether the batch information needs to be updated in the storage.
- *
- * @param bool $new_value
- *   (optional) A new value to set.
- *
- * @return bool
- *   TRUE if the batch information needs to be updated; FALSE otherwise.
- */
-function _batch_needs_update($new_value = NULL) {
-  $needs_update = &drupal_static(__FUNCTION__, FALSE);
-
-  if (isset($new_value)) {
-    $needs_update = $new_value;
-  }
-
-  return $needs_update;
+  return $build;
 }
 
 /**
@@ -253,7 +211,6 @@ function _batch_process() {
   $current_set = &_batch_current_set();
   // Indicate that this batch set needs to be initialized.
   $set_changed = TRUE;
-  $task_message = '';
 
   // If this batch was marked for progressive execution (e.g. forms submitted by
   // \Drupal::formBuilder()->submitForm(), initialize a timer to determine
@@ -277,7 +234,7 @@ function _batch_process() {
       include_once \Drupal::root() . '/' . $current_set['file'];
     }
 
-    $task_message = '';
+    $task_message = $label = '';
     // Assume a single pass operation and set the completion level to 1 by
     // default.
     $finished = 1;
@@ -365,8 +322,11 @@ function _batch_process() {
       '@estimate'   => ($current > 0) ? \Drupal::service('date.formatter')->formatInterval(($elapsed * ($total - $current) / $current) / 1000) : '-',
     ];
     $message = strtr($progress_message, $values);
+    if (!empty($task_message)) {
+      $label = $task_message;
+    }
 
-    return [$percentage, $message, $task_message];
+    return [$percentage, $message, $label];
   }
   else {
     // If we are not in progressive mode, the entire batch has been processed.
@@ -549,7 +509,7 @@ function _batch_finished() {
  * @see drupal_register_shutdown_function()
  */
 function _batch_shutdown() {
-  if (($batch = batch_get()) && _batch_needs_update()) {
+  if ($batch = batch_get()) {
     \Drupal::service('batch.storage')->update($batch);
   }
 }

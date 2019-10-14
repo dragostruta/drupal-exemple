@@ -2,20 +2,19 @@
 
 namespace Drupal\contact;
 
-use Drupal\Component\Utility\EmailValidatorInterface;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\ConfigFormBaseTrait;
 use Drupal\Core\Form\FormStateInterface;
+use Egulias\EmailValidator\EmailValidator;
 use Drupal\Core\Path\PathValidatorInterface;
 use Drupal\Core\Render\Element\PathElement;
 
 /**
  * Base form for contact form edit forms.
- *
- * @internal
  */
 class ContactFormEditForm extends EntityForm implements ContainerInjectionInterface {
   use ConfigFormBaseTrait;
@@ -23,7 +22,7 @@ class ContactFormEditForm extends EntityForm implements ContainerInjectionInterf
   /**
    * The email validator.
    *
-   * @var \Drupal\Component\Utility\EmailValidatorInterface
+   * @var \Egulias\EmailValidator\EmailValidator
    */
   protected $emailValidator;
 
@@ -37,12 +36,12 @@ class ContactFormEditForm extends EntityForm implements ContainerInjectionInterf
   /**
    * Constructs a new ContactFormEditForm.
    *
-   * @param \Drupal\Component\Utility\EmailValidatorInterface $email_validator
+   * @param \Egulias\EmailValidator\EmailValidator $email_validator
    *   The email validator.
    * @param \Drupal\Core\Path\PathValidatorInterface $path_validator
    *   The path validator service.
    */
-  public function __construct(EmailValidatorInterface $email_validator, PathValidatorInterface $path_validator) {
+  public function __construct(EmailValidator $email_validator, PathValidatorInterface $path_validator) {
     $this->emailValidator = $email_validator;
     $this->pathValidator = $path_validator;
   }
@@ -149,7 +148,7 @@ class ContactFormEditForm extends EntityForm implements ContainerInjectionInterf
     $form_state->setValue('recipients', $recipients);
     $redirect_url = $form_state->getValue('redirect');
     if ($redirect_url && $this->pathValidator->isValid($redirect_url)) {
-      if (mb_substr($redirect_url, 0, 1) !== '/') {
+      if (Unicode::substr($redirect_url, 0, 1) !== '/') {
         $form_state->setErrorByName('redirect', $this->t('The path should start with /.'));
       }
     }
@@ -163,14 +162,14 @@ class ContactFormEditForm extends EntityForm implements ContainerInjectionInterf
     $status = $contact_form->save();
     $contact_settings = $this->config('contact.settings');
 
-    $edit_link = $this->entity->toLink($this->t('Edit'))->toString();
-    $view_link = $contact_form->toLink($contact_form->label(), 'canonical')->toString();
+    $edit_link = $this->entity->link($this->t('Edit'));
+    $view_link = $contact_form->link($contact_form->label(), 'canonical');
     if ($status == SAVED_UPDATED) {
-      $this->messenger()->addStatus($this->t('Contact form %label has been updated.', ['%label' => $view_link]));
+      drupal_set_message($this->t('Contact form %label has been updated.', ['%label' => $view_link]));
       $this->logger('contact')->notice('Contact form %label has been updated.', ['%label' => $contact_form->label(), 'link' => $edit_link]);
     }
     else {
-      $this->messenger()->addStatus($this->t('Contact form %label has been added.', ['%label' => $view_link]));
+      drupal_set_message($this->t('Contact form %label has been added.', ['%label' => $view_link]));
       $this->logger('contact')->notice('Contact form %label has been added.', ['%label' => $contact_form->label(), 'link' => $edit_link]);
     }
 
@@ -187,7 +186,7 @@ class ContactFormEditForm extends EntityForm implements ContainerInjectionInterf
         ->save();
     }
 
-    $form_state->setRedirectUrl($contact_form->toUrl('collection'));
+    $form_state->setRedirectUrl($contact_form->urlInfo('collection'));
   }
 
 }

@@ -26,6 +26,13 @@ class NodeListBuilder extends EntityListBuilder {
   protected $dateFormatter;
 
   /**
+   * The redirect destination service.
+   *
+   * @var \Drupal\Core\Routing\RedirectDestinationInterface
+   */
+  protected $redirectDestination;
+
+  /**
    * Constructs a new NodeListBuilder object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -50,7 +57,7 @@ class NodeListBuilder extends EntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity_type.manager')->getStorage($entity_type->id()),
+      $container->get('entity.manager')->getStorage($entity_type->id()),
       $container->get('date.formatter'),
       $container->get('redirect.destination')
     );
@@ -96,14 +103,14 @@ class NodeListBuilder extends EntityListBuilder {
       '#mark_type' => node_mark($entity->id(), $entity->getChangedTime()),
     ];
     $langcode = $entity->language()->getId();
-    $uri = $entity->toUrl();
+    $uri = $entity->urlInfo();
     $options = $uri->getOptions();
     $options += ($langcode != LanguageInterface::LANGCODE_NOT_SPECIFIED && isset($languages[$langcode]) ? ['language' => $languages[$langcode]] : []);
     $uri->setOptions($options);
     $row['title']['data'] = [
       '#type' => 'link',
       '#title' => $entity->label(),
-      '#suffix' => ' ' . \Drupal::service('renderer')->render($mark),
+      '#suffix' => ' ' . drupal_render($mark),
       '#url' => $uri,
     ];
     $row['type'] = node_get_type_label($entity);
@@ -119,6 +126,19 @@ class NodeListBuilder extends EntityListBuilder {
     }
     $row['operations']['data'] = $this->buildOperations($entity);
     return $row + parent::buildRow($entity);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getDefaultOperations(EntityInterface $entity) {
+    $operations = parent::getDefaultOperations($entity);
+
+    $destination = $this->redirectDestination->getAsArray();
+    foreach ($operations as $key => $operation) {
+      $operations[$key]['query'] = $destination;
+    }
+    return $operations;
   }
 
 }

@@ -3,7 +3,6 @@
 namespace Drupal\editor\Form;
 
 use Drupal\Component\Utility\Bytes;
-use Drupal\Component\Utility\Environment;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\editor\Entity\Editor;
@@ -16,8 +15,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
 
 /**
  * Provides an image dialog for text editors.
- *
- * @internal
  */
 class EditorImageDialog extends FormBase {
 
@@ -92,8 +89,9 @@ class EditorImageDialog extends FormBase {
     else {
       $max_dimensions = 0;
     }
-    $max_filesize = min(Bytes::toInt($image_upload['max_size']), Environment::getUploadMaxSize());
-    $existing_file = isset($image_element['data-entity-uuid']) ? \Drupal::service('entity.repository')->loadEntityByUuid('file', $image_element['data-entity-uuid']) : NULL;
+    $max_filesize = min(Bytes::toInt($image_upload['max_size']), file_upload_max_size());
+
+    $existing_file = isset($image_element['data-entity-uuid']) ? \Drupal::entityManager()->loadEntityByUuid('file', $image_element['data-entity-uuid']) : NULL;
     $fid = $existing_file ? $existing_file->id() : NULL;
 
     $form['fid'] = [
@@ -141,7 +139,7 @@ class EditorImageDialog extends FormBase {
     }
     $form['attributes']['alt'] = [
       '#title' => $this->t('Alternative text'),
-      '#description' => $this->t('Short description of the image used by screen readers and displayed when the image is not loaded. This is important for accessibility.'),
+      '#placeholder' => $this->t('Short description for the visually impaired'),
       '#type' => 'textfield',
       '#required' => TRUE,
       '#required_error' => $this->t('Alternative text is required.<br />(Only in rare cases should this be left empty. To create empty alternative text, enter <code>""</code> — two double quotes without any content).'),
@@ -206,9 +204,11 @@ class EditorImageDialog extends FormBase {
     // attributes and set data-entity-type to 'file'.
     $fid = $form_state->getValue(['fid', 0]);
     if (!empty($fid)) {
-      /** @var \Drupal\file\FileInterface $file */
       $file = $this->fileStorage->load($fid);
-      $file_url = $file->createFileUrl();
+      $file_url = file_create_url($file->getFileUri());
+      // Transform absolute image URLs to relative image URLs: prevent problems
+      // on multisite set-ups and prevent mixed content errors.
+      $file_url = file_url_transform_relative($file_url);
       $form_state->setValue(['attributes', 'src'], $file_url);
       $form_state->setValue(['attributes', 'data-entity-uuid'], $file->uuid());
       $form_state->setValue(['attributes', 'data-entity-type'], 'file');

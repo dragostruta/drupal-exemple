@@ -21,8 +21,6 @@ class Users extends WizardPluginBase {
 
   /**
    * Set the created column.
-   *
-   * @var string
    */
   protected $createdColumn = 'created';
 
@@ -37,7 +35,7 @@ class Users extends WizardPluginBase {
       'plugin_id' => 'boolean',
       'entity_type' => 'user',
       'entity_field' => 'status',
-    ],
+    ]
   ];
 
   /**

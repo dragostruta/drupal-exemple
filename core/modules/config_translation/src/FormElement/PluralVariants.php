@@ -2,8 +2,7 @@
 
 namespace Drupal\config_translation\FormElement;
 
-use Drupal\Component\Gettext\PoItem;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\Config\LanguageConfigOverride;
@@ -18,10 +17,10 @@ class PluralVariants extends FormElementBase {
    */
   protected function getSourceElement(LanguageInterface $source_language, $source_config) {
     $plurals = $this->getNumberOfPlurals($source_language->getId());
-    $values = explode(PoItem::DELIMITER, $source_config);
+    $values = explode(LOCALE_PLURAL_DELIMITER, $source_config);
     $element = [
       '#type' => 'fieldset',
-      '#title' => new FormattableMarkup('@label <span class="visually-hidden">(@source_language)</span>', [
+      '#title' => SafeMarkup::format('@label <span class="visually-hidden">(@source_language)</span>', [
         // Labels originate from configuration schema and are translatable.
         '@label' => $this->t($this->definition->getLabel()),
         '@source_language' => $source_language->getName(),
@@ -33,7 +32,7 @@ class PluralVariants extends FormElementBase {
         '#type' => 'item',
         // @todo Should use better labels https://www.drupal.org/node/2499639
         '#title' => $i == 0 ? $this->t('Singular form') : $this->formatPlural($i, 'First plural form', '@count. plural form'),
-        '#markup' => new FormattableMarkup('<span lang="@langcode">@value</span>', [
+        '#markup' => SafeMarkup::format('<span lang="@langcode">@value</span>', [
           '@langcode' => $source_language->getId(),
           '@value' => isset($values[$i]) ? $values[$i] : $this->t('(Empty)'),
         ]),
@@ -47,10 +46,10 @@ class PluralVariants extends FormElementBase {
    */
   protected function getTranslationElement(LanguageInterface $translation_language, $source_config, $translation_config) {
     $plurals = $this->getNumberOfPlurals($translation_language->getId());
-    $values = explode(PoItem::DELIMITER, $translation_config);
+    $values = explode(LOCALE_PLURAL_DELIMITER, $translation_config);
     $element = [
       '#type' => 'fieldset',
-      '#title' => new FormattableMarkup('@label <span class="visually-hidden">(@translation_language)</span>', [
+      '#title' => SafeMarkup::format('@label <span class="visually-hidden">(@translation_language)</span>', [
         // Labels originate from configuration schema and are translatable.
         '@label' => $this->t($this->definition->getLabel()),
         '@translation_language' => $translation_language->getName(),
@@ -73,7 +72,7 @@ class PluralVariants extends FormElementBase {
    * {@inheritdoc}
    */
   public function setConfig(Config $base_config, LanguageConfigOverride $config_translation, $config_values, $base_key = NULL) {
-    $config_values = implode(PoItem::DELIMITER, $config_values);
+    $config_values = implode(LOCALE_PLURAL_DELIMITER, $config_values);
     parent::setConfig($base_config, $config_translation, $config_values, $base_key);
   }
 

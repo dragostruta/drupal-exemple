@@ -299,18 +299,16 @@ class FormCacheTest extends UnitTestCase {
       ->method('isAnonymous')
       ->willReturn(TRUE);
 
-    $cached_form_state = [
-      'build_info' => [
-        'files' => [
-          [
-            'module' => 'a_module',
-            'type' => 'the_type',
-            'name' => 'some_name',
-          ],
-          ['module' => 'another_module'],
-        ],
+    $cached_form_state = ['build_info' => ['files' => [
+      [
+        'module' => 'a_module',
+        'type' => 'the_type',
+        'name' => 'some_name',
       ],
-    ];
+      [
+        'module' => 'another_module',
+      ],
+    ]]];
     $this->moduleHandler->expects($this->at(0))
       ->method('loadInclude')
       ->with('a_module', 'the_type', 'some_name');
@@ -331,7 +329,7 @@ class FormCacheTest extends UnitTestCase {
   public function testSetCacheWithForm() {
     $form_build_id = 'the_form_build_id';
     $form = [
-      '#form_id' => 'the_form_id',
+      '#form_id' => 'the_form_id'
     ];
     $form_state = new FormState();
 
@@ -416,6 +414,7 @@ class FormCacheTest extends UnitTestCase {
       ->with('Form build-id mismatch detected while attempting to store a form in the cache.');
     $this->formCache->setCache($form_build_id, $form, $form_state);
   }
+
 
   /**
    * @covers ::deleteCache

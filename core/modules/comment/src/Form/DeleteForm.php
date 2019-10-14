@@ -6,8 +6,6 @@ use Drupal\Core\Entity\ContentEntityDeleteForm;
 
 /**
  * Provides the comment delete confirmation form.
- *
- * @internal
  */
 class DeleteForm extends ContentEntityDeleteForm {
 
@@ -16,7 +14,7 @@ class DeleteForm extends ContentEntityDeleteForm {
    */
   public function getCancelUrl() {
     // Point to the entity of which this comment is a reply.
-    return $this->entity->get('entity_id')->entity->toUrl();
+    return $this->entity->get('entity_id')->entity->urlInfo();
   }
 
   /**

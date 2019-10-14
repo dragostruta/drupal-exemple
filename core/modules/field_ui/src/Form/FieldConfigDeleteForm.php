@@ -4,7 +4,7 @@ namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityDeleteForm;
-use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\field_ui\FieldUI;
@@ -12,26 +12,24 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a form for removing a field from a bundle.
- *
- * @internal
  */
 class FieldConfigDeleteForm extends EntityDeleteForm {
 
   /**
-   * The entity type bundle info service.
+   * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityTypeBundleInfo;
+  protected $entityManager;
 
   /**
    * Constructs a new FieldConfigDeleteForm object.
    *
-   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
-   *   The entity type bundle info service.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager.
    */
-  public function __construct(EntityTypeBundleInfoInterface $entity_type_bundle_info) {
-    $this->entityTypeBundleInfo = $entity_type_bundle_info;
+  public function __construct(EntityManagerInterface $entity_manager) {
+    $this->entityManager = $entity_manager;
   }
 
   /**
@@ -39,7 +37,7 @@ class FieldConfigDeleteForm extends EntityDeleteForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_type.bundle.info')
+      $container->get('entity.manager')
     );
   }
 
@@ -93,15 +91,15 @@ class FieldConfigDeleteForm extends EntityDeleteForm {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $field_storage = $this->entity->getFieldStorageDefinition();
-    $bundles = $this->entityTypeBundleInfo->getBundleInfo($this->entity->getTargetEntityTypeId());
+    $bundles = $this->entityManager->getBundleInfo($this->entity->getTargetEntityTypeId());
     $bundle_label = $bundles[$this->entity->getTargetBundle()]['label'];
 
     if ($field_storage && !$field_storage->isLocked()) {
       $this->entity->delete();
-      $this->messenger()->addStatus($this->t('The field %field has been deleted from the %type content type.', ['%field' => $this->entity->label(), '%type' => $bundle_label]));
+      drupal_set_message($this->t('The field %field has been deleted from the %type content type.', ['%field' => $this->entity->label(), '%type' => $bundle_label]));
     }
     else {
-      $this->messenger()->addError($this->t('There was a problem removing the %field from the %type content type.', ['%field' => $this->entity->label(), '%type' => $bundle_label]));
+      drupal_set_message($this->t('There was a problem removing the %field from the %type content type.', ['%field' => $this->entity->label(), '%type' => $bundle_label]), 'error');
     }
 
     $form_state->setRedirectUrl($this->getCancelUrl());

@@ -7,8 +7,6 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form controller for the role entity edit forms.
- *
- * @internal
  */
 class RoleForm extends EntityForm {
 
@@ -55,13 +53,13 @@ class RoleForm extends EntityForm {
     $entity->set('label', trim($entity->label()));
     $status = $entity->save();
 
-    $edit_link = $this->entity->toLink($this->t('Edit'), 'edit-form')->toString();
+    $edit_link = $this->entity->link($this->t('Edit'));
     if ($status == SAVED_UPDATED) {
-      $this->messenger()->addStatus($this->t('Role %label has been updated.', ['%label' => $entity->label()]));
+      drupal_set_message($this->t('Role %label has been updated.', ['%label' => $entity->label()]));
       $this->logger('user')->notice('Role %label has been updated.', ['%label' => $entity->label(), 'link' => $edit_link]);
     }
     else {
-      $this->messenger()->addStatus($this->t('Role %label has been added.', ['%label' => $entity->label()]));
+      drupal_set_message($this->t('Role %label has been added.', ['%label' => $entity->label()]));
       $this->logger('user')->notice('Role %label has been added.', ['%label' => $entity->label(), 'link' => $edit_link]);
     }
     $form_state->setRedirect('entity.user_role.collection');

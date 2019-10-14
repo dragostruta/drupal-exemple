@@ -2,7 +2,6 @@
 
 namespace Drupal\node\Form;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\ConfirmFormBase;
@@ -13,8 +12,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a form for reverting a node revision.
- *
- * @internal
  */
 class NodeRevisionRevertForm extends ConfirmFormBase {
 
@@ -28,7 +25,7 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
   /**
    * The node storage.
    *
-   * @var \Drupal\node\NodeStorageInterface
+   * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected $nodeStorage;
 
@@ -53,13 +50,11 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
    *   The node storage.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
-   * @param \Drupal\Component\Datetime\TimeInterface $time
-   *   The time service.
    */
-  public function __construct(EntityStorageInterface $node_storage, DateFormatterInterface $date_formatter, TimeInterface $time) {
+  public function __construct(EntityStorageInterface $node_storage, DateFormatterInterface $date_formatter) {
     $this->nodeStorage = $node_storage;
     $this->dateFormatter = $date_formatter;
-    $this->time = $time;
+    $this->time = \Drupal::service('datetime.time');
   }
 
   /**
@@ -68,8 +63,7 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity.manager')->getStorage('node'),
-      $container->get('date.formatter'),
-      $container->get('datetime.time')
+      $container->get('date.formatter')
     );
   }
 
@@ -128,18 +122,12 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
 
     $this->revision = $this->prepareRevertedRevision($this->revision, $form_state);
     $this->revision->revision_log = t('Copy of the revision from %date.', ['%date' => $this->dateFormatter->format($original_revision_timestamp)]);
-    $this->revision->setRevisionUserId($this->currentUser()->id());
     $this->revision->setRevisionCreationTime($this->time->getRequestTime());
     $this->revision->setChangedTime($this->time->getRequestTime());
     $this->revision->save();
 
     $this->logger('content')->notice('@type: reverted %title revision %revision.', ['@type' => $this->revision->bundle(), '%title' => $this->revision->label(), '%revision' => $this->revision->getRevisionId()]);
-    $this->messenger()
-      ->addStatus($this->t('@type %title has been reverted to the revision from %revision-date.', [
-        '@type' => node_get_type_label($this->revision),
-        '%title' => $this->revision->label(),
-        '%revision-date' => $this->dateFormatter->format($original_revision_timestamp),
-      ]));
+    drupal_set_message(t('@type %title has been reverted to the revision from %revision-date.', ['@type' => node_get_type_label($this->revision), '%title' => $this->revision->label(), '%revision-date' => $this->dateFormatter->format($original_revision_timestamp)]));
     $form_state->setRedirect(
       'entity.node.version_history',
       ['node' => $this->revision->id()]

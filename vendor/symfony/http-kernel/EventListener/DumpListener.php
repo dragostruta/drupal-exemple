@@ -27,6 +27,10 @@ class DumpListener implements EventSubscriberInterface
     private $cloner;
     private $dumper;
 
+    /**
+     * @param ClonerInterface     $cloner Cloner service
+     * @param DataDumperInterface $dumper Dumper service
+     */
     public function __construct(ClonerInterface $cloner, DataDumperInterface $dumper)
     {
         $this->cloner = $cloner;
@@ -45,11 +49,7 @@ class DumpListener implements EventSubscriberInterface
 
     public static function getSubscribedEvents()
     {
-        if (!class_exists(ConsoleEvents::class)) {
-            return [];
-        }
-
         // Register early to have a working dump() as early as possible
-        return [ConsoleEvents::COMMAND => ['configure', 1024]];
+        return array(ConsoleEvents::COMMAND => array('configure', 1024));
     }
 }

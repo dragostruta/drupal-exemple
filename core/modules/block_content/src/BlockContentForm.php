@@ -8,8 +8,6 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Form handler for the custom block edit forms.
- *
- * @internal
  */
 class BlockContentForm extends ContentEntityForm {
 
@@ -54,11 +52,11 @@ class BlockContentForm extends ContentEntityForm {
 
     if ($insert) {
       $logger->notice('@type: added %info.', $context);
-      $this->messenger()->addStatus($this->t('@type %info has been created.', $t_args));
+      drupal_set_message($this->t('@type %info has been created.', $t_args));
     }
     else {
       $logger->notice('@type: updated %info.', $context);
-      $this->messenger()->addStatus($this->t('@type %info has been updated.', $t_args));
+      drupal_set_message($this->t('@type %info has been updated.', $t_args));
     }
 
     if ($block->id()) {
@@ -77,13 +75,13 @@ class BlockContentForm extends ContentEntityForm {
         );
       }
       else {
-        $form_state->setRedirectUrl($block->toUrl('collection'));
+        $form_state->setRedirectUrl($block->urlInfo('collection'));
       }
     }
     else {
       // In the unlikely case something went wrong on save, the block will be
       // rebuilt and block form redisplayed.
-      $this->messenger()->addError($this->t('The block could not be saved.'));
+      drupal_set_message($this->t('The block could not be saved.'), 'error');
       $form_state->setRebuild();
     }
   }

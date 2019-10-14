@@ -15,8 +15,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a form for administering a single book's hierarchy.
- *
- * @internal
  */
 class BookAdminEditForm extends FormBase {
 
@@ -121,13 +119,13 @@ class BookAdminEditForm extends FormBase {
             $node->book['link_title'] = $values['title'];
             $node->setNewRevision();
             $node->save();
-            $this->logger('content')->notice('book: updated %title.', ['%title' => $node->label(), 'link' => $node->toLink($this->t('View'))->toString()]);
+            $this->logger('content')->notice('book: updated %title.', ['%title' => $node->label(), 'link' => $node->link($this->t('View'))]);
           }
         }
       }
     }
 
-    $this->messenger()->addStatus($this->t('Updated book %title.', ['%title' => $form['#node']->label()]));
+    drupal_set_message($this->t('Updated book %title.', ['%title' => $form['#node']->label()]));
   }
 
   /**
@@ -222,7 +220,7 @@ class BookAdminEditForm extends FormBase {
       }
 
       $form[$id]['title'] = [
-        '#prefix' => !empty($indentation) ? \Drupal::service('renderer')->render($indentation) : '',
+        '#prefix' => !empty($indentation) ? drupal_render($indentation) : '',
         '#type' => 'textfield',
         '#default_value' => $data['link']['title'],
         '#maxlength' => 255,
